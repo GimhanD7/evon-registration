@@ -31,7 +31,7 @@ export default function Footer({ onOpenLogin, onOpenJoin }: FooterProps) {
 
   return (
     <footer
-      className="relative overflow-hidden bg-[#0c2944] pt-16 pb-8 text-[#94a3b8]"
+      className="relative overflow-hidden bg-[#0c2944] pt-16 pb-8 max-md:pb-28 text-[#94a3b8]"
       id="contact"
     >
       {/* Ambient background glows matching brand theme */}
@@ -138,36 +138,36 @@ export default function Footer({ onOpenLogin, onOpenJoin }: FooterProps) {
                 </Link>
               </li>
               <li>
-                <a
+                <Link
                   href="/#timetable"
                   className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
                 >
                   Grade 10 Theory Batches
-                </a>
+                </Link>
               </li>
               <li>
-                <a
+                <Link
                   href="/#timetable"
                   className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
                 >
                   Grade 11 Theory Batches
-                </a>
+                </Link>
               </li>
               <li>
-                <a
+                <Link
                   href="/#timetable"
                   className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
                 >
                   Model Paper &amp; Speed Exam Classes
-                </a>
+                </Link>
               </li>
               <li>
-                <a
+                <Link
                   href="/#hero"
                   className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
                 >
                   Home &amp; Course Overview
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

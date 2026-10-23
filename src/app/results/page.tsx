@@ -95,7 +95,7 @@ export default function ResultsPage() {
       <main className="py-10 max-sm:py-6">
         <div className="mx-auto w-full max-w-[1240px] px-8 max-sm:px-4">
           {/* Top Navigation Row: Back to Home & Print */}
-          <div className="mb-6 flex items-center justify-between print:hidden">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
             <Link
               href="/"
               className="inline-flex items-center gap-2 rounded-full border border-[#cddce5] bg-white px-4 py-2 text-[12px] font-bold text-[#254967] shadow-sm transition-all hover:border-[#007fb8] hover:text-[#007fb8] hover:shadow"
@@ -104,7 +104,7 @@ export default function ResultsPage() {
               Back to Home
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/timetable"
                 className="inline-flex items-center gap-2 rounded-full border border-[#cddce5] bg-white px-4 py-2 text-[12px] font-bold text-[#254967] shadow-sm transition-all hover:border-[#007fb8] hover:text-[#007fb8] hover:shadow"
@@ -219,7 +219,7 @@ export default function ResultsPage() {
           <div className="mt-8 rounded-3xl border border-[#cddce5] bg-white p-6 shadow-[0_6px_25px_-6px_rgba(16,44,69,0.06)] print:hidden">
             <div className="flex flex-col gap-5">
               {/* Search Bar & School Selector */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
                 <div className="relative min-w-0 w-full flex-1">
                   <Search
                     size={18}
@@ -230,7 +230,7 @@ export default function ResultsPage() {
                     placeholder="Search by student name, school, or index number (e.g. Yashodhini, Ananda, 53560574)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-xl border border-[#cddce5] bg-[#edf2f3] py-2.5 pr-10 pl-10 text-[13px] font-medium text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    className="w-full rounded-xl border border-[#cddce5] bg-[#edf2f3] py-2.5 pr-10 pl-10 text-[13px] font-medium text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white max-sm:text-base"
                   />
                   {searchQuery.trim() !== "" && (
                     <button
@@ -243,12 +243,12 @@ export default function ResultsPage() {
                   )}
                 </div>
 
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <div className="flex w-full min-w-0 max-w-full items-center gap-2 sm:w-auto">
                   <School size={16} className="text-[#007fb8]" />
                   <select
                     value={selectedSchool}
                     onChange={(e) => setSelectedSchool(e.target.value)}
-                    className="min-w-0 max-w-full flex-1 rounded-xl border border-[#cddce5] bg-[#edf2f3] px-3.5 py-2.5 text-[12px] font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    className="min-w-0 max-w-full flex-1 rounded-xl border border-[#cddce5] bg-[#edf2f3] px-3.5 py-2.5 text-[12px] font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white max-sm:text-base"
                   >
                     <option value="all">
                       All Schools ({uniqueSchools.length})

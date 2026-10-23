@@ -18,7 +18,7 @@ export default function Hero({
     <section
       id="hero"
       aria-labelledby="hero-heading"
-      className="relative isolate -mt-[88px] min-h-[800px] overflow-hidden bg-[#edf2f3] pt-[180px] pb-20 lg:min-h-[min(900px,100svh)] max-lg:pt-[140px] max-lg:pb-0 max-sm:-mt-[84px] max-sm:pt-[125px]"
+      className="relative isolate -mt-[88px] min-h-[800px] overflow-hidden bg-[#edf2f3] pt-[180px] pb-20 lg:min-h-[min(900px,100svh)] max-lg:pt-[140px] max-lg:pb-0 max-md:mt-0 max-md:pt-10 max-sm:pt-8"
     >
       <div aria-hidden="true" className="pointer-events-none absolute -top-44 -left-40 -z-10 size-[600px] rounded-full bg-[#7daac6]/25 blur-[100px]" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-[54%] bg-[#3e75b6] [clip-path:polygon(25%_0,100%_0,100%_100%,44%_100%,0_29%)] max-lg:top-auto max-lg:h-[540px] max-lg:w-full max-lg:[clip-path:polygon(22%_0,100%_0,100%_100%,0_100%,0_25%)] max-sm:h-[clamp(340px,110vw,450px)]" />

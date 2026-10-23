@@ -62,8 +62,8 @@ export default function TopRanksShowcase() {
           </p>
         </div>
 
-        {/* 2 Cards per Row Grid (Desktop, Tablet, Mobile) */}
-        <div className="grid grid-cols-2 gap-6 max-sm:gap-3.5">
+        {/* Responsive student cards */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 max-sm:gap-4">
           {rankers.map((r, idx) => (
             <div
               key={idx}
@@ -71,7 +71,7 @@ export default function TopRanksShowcase() {
             >
               <div>
                 {/* Card Top: Rank Badge & Stream Tag */}
-                <div className="mb-4 flex items-center justify-between gap-2 max-sm:mb-2.5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 max-sm:mb-2.5">
                   <div className="inline-flex items-center gap-1 rounded-full border border-[#38d995]/50 bg-[#e8f7f2] px-2.5 py-1 text-[11px] font-extrabold text-[#159366] max-sm:text-[9px] max-sm:px-2 max-sm:py-0.5">
                     <Trophy size={13} className="text-[#159366] max-sm:size-3" />
                     <span>{r.rank}</span>

@@ -52,7 +52,7 @@ export default function SearchModal({
             placeholder="Search courses, past papers, study guides, recordings..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="[border:none] [background:transparent] w-full text-[length:1rem] text-[#0f172a] [outline:none] font-[inherit]"
+            className="[border:none] [background:transparent] w-full text-[length:1rem] text-[#0f172a] [outline:none] font-[inherit] max-sm:text-base"
           />
           <button
             type="button"

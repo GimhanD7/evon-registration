@@ -98,7 +98,7 @@ export default function JoinModal({
                   placeholder="e.g. Kasun Fernando"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                  className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                 />
               </div>
 
@@ -111,7 +111,7 @@ export default function JoinModal({
                     placeholder="07X XXX XXXX"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                   />
                 </div>
 
@@ -120,7 +120,7 @@ export default function JoinModal({
                   <select
                     value={examYear}
                     onChange={(e) => setExamYear(e.target.value)}
-                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                   >
                     <option value="2026">2026 O/L</option>
                     <option value="2025">2025 O/L Revision</option>
@@ -135,7 +135,7 @@ export default function JoinModal({
                   <select
                     value={medium}
                     onChange={(e) => setMedium(e.target.value)}
-                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                   >
                     <option value="English Medium">English Medium</option>
                     <option value="Sinhala Medium">Sinhala Medium</option>
@@ -147,7 +147,7 @@ export default function JoinModal({
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                    className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                   >
                     <option value="Colombo">Colombo</option>
                     <option value="Gampaha">Gampaha</option>
@@ -169,7 +169,7 @@ export default function JoinModal({
                   placeholder="e.g. Ananda College, Royal College, Devi Balika"
                   value={school}
                   onChange={(e) => setSchool(e.target.value)}
-                  className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                  className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                 />
               </div>
 
@@ -178,7 +178,7 @@ export default function JoinModal({
                 <select
                   value={mode}
                   onChange={(e) => setMode(e.target.value)}
-                  className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
+                  className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                 >
                   <option value="Sakya - Kiribathgoda">
                     Sakya - Kiribathgoda
