@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import { twMerge } from "tailwind-merge";
-import { Trophy, Star, Award, GraduationCap, Quote } from "lucide-react";
+import Link from "next/link";
+import { Trophy, Star, GraduationCap, Quote, ArrowUpRight, Sparkles } from "lucide-react";
 
 export default function TopRanksShowcase() {
   const rankers = [
     {
       name: "Sachithra Weerasinghe",
       school: "Ananda College, Colombo",
-      rank: "Student story",
+      rank: "Top Achiever",
       quote:
         "Evon sir's speed revision and model exam papers gave me the exact timing strategy required for the real exam. The concepts were crystal clear!",
       badgeColor: "gold",
@@ -17,7 +17,7 @@ export default function TopRanksShowcase() {
     {
       name: "Dinithi Jayasuriya",
       school: "Devi Balika Vidyalaya, Colombo",
-      rank: "Student story",
+      rank: "Top Achiever",
       quote:
         "Accounting used to be daunting until I started following Evon sir. His structured notes and past paper breakdown were the true game-changer.",
       badgeColor: "silver",
@@ -25,7 +25,7 @@ export default function TopRanksShowcase() {
     {
       name: "Kavindu Wickramasinghe",
       school: "Dharmaraja College, Kandy",
-      rank: "Student story",
+      rank: "Top Achiever",
       quote:
         "Even though I joined through the online platform from Kandy, the live interactive Q&A and doorstep tute delivery felt like physical class!",
       badgeColor: "bronze",
@@ -33,7 +33,7 @@ export default function TopRanksShowcase() {
     {
       name: "Tharushi Sandunika",
       school: "Southlands College, Galle",
-      rank: "Student story",
+      rank: "Top Achiever",
       quote:
         "Evon sir's dedication is unparalleled. Every monthly exam was strictly evaluated and given individual feedback on where marks were lost.",
       badgeColor: "bronze",
@@ -41,65 +41,102 @@ export default function TopRanksShowcase() {
   ];
 
   return (
-    <section className="pt-20 pb-20 pl-0 pr-0 relative bg-[linear-gradient(180deg,_#f8fafc_0%,_#ffffff_100%)]" id="top-ranks">
-      <div className="w-full max-w-[var(--container-max)] ml-auto mr-auto pl-6 pr-6 max-[640px]:pl-4 max-[640px]:pr-4">
-        <div className="text-center max-w-[680px] mt-0 mr-auto mb-12.5 ml-auto">
-          <div className="inline-flex items-center gap-1.5 [background:rgba(245,_158,_11,_0.12)] [border:1px_solid_rgba(245,_158,_11,_0.35)] text-[#b45309] text-[length:0.75rem] font-extrabold tracking-[1.2px] pt-[5px] pb-[5px] pl-3.5 pr-3.5 rounded-full mb-4 uppercase">
-            <Trophy size={14} className="text-[#d97706]" /> OUR STUDENTS
+    <section
+      className="relative bg-[linear-gradient(180deg,#f8fafc_0%,#edf2f3_100%)] pt-18 pb-20 max-sm:pt-12 max-sm:pb-14"
+      id="results"
+    >
+      <div className="mx-auto w-full max-w-[var(--container-max)] px-6 max-sm:px-4">
+        {/* Section Header */}
+        <div className="mx-auto mb-12 max-w-[680px] text-center max-sm:mb-8">
+          <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#007fb8]/30 bg-[#e0f2fe] px-3.5 py-1 text-[11px] font-extrabold tracking-[1.2px] text-[#007fb8] uppercase shadow-xs">
+            <Trophy size={14} className="text-[#007fb8]" /> 2025 O/L EXAM RESULTS
           </div>
-          <h2 className="text-[length:2.35rem] font-[850] leading-[1.2] text-[#0f172a] tracking-[-0.8px] mb-4 max-[640px]:text-[length:1.85rem]">
-            Learning with Confidence <br />
-            <span className="bg-[linear-gradient(135deg,_#d97706_0%,_#f59e0b_50%,_#0284c7_100%)] bg-clip-text [-webkit-text-fill-color:transparent]">O/L Student Journeys</span>
+          <h2 className="mb-4 text-[clamp(28px,3.5vw,42px)] leading-[1.15] font-black tracking-[-1px] text-[#102c45]">
+            Champions in Commerce <br />
+            <span className="bg-[linear-gradient(135deg,#007fb8_0%,#0ac9e8_100%)] bg-clip-text text-transparent">
+              2025 O/L High Achievers
+            </span>
           </h2>
-          <p className="text-[length:1rem] text-[#64748b] leading-[1.6]">
-            Meet students from our Commerce learning community and hear about their experience.
+          <p className="text-[15px] leading-[1.65] font-medium text-[#60768a] max-sm:text-[13px]">
+            Over 50+ students achieved 9A&apos;s and 169+ secured top passes in English Medium Business &amp; Accounting Studies.
           </p>
         </div>
 
-        <div className="grid grid-cols-[repeat(4,_1fr)] gap-6 max-[1120px]:grid-cols-[repeat(2,_1fr)] max-[640px]:grid-cols-[1fr]">
+        {/* 2 Cards per Row Grid (Desktop, Tablet, Mobile) */}
+        <div className="grid grid-cols-2 gap-6 max-sm:gap-3.5">
           {rankers.map((r, idx) => (
-            <div key={idx} className="bg-[#ffffff] [border:1px_solid_rgba(226,_232,_240,_0.9)] rounded-[22px] pt-6.5 pb-6.5 pl-5.5 pr-5.5 [box-shadow:0_10px_30px_-10px_rgba(15,_23,_42,_0.05)] flex flex-col [transition:all_0.3s_cubic-bezier(0.16,_1,_0.3,_1)] hover:[transform:translateY(-6px)] hover:[box-shadow:0_20px_42px_-10px_rgba(245,_158,_11,_0.18)] hover:[border-color:rgba(251,_191,_36,_0.8)]">
-              <div className="flex items-center justify-between mb-4.5">
-                <div
-                  className={twMerge(`inline-flex items-center gap-1.5 text-[length:0.78rem] font-extrabold pt-1.5 pb-1.5 pl-3 pr-3 rounded-full ${
-                    (r.badgeColor === "gold" ? "bg-[#fef3c7] text-[#b45309] [border:1px_solid_#fde68a]" : r.badgeColor === "silver" ? "bg-[#f1f5f9] text-[#334155] [border:1px_solid_#cbd5e1]" : "bg-[#ffedd5] text-[#c2410c] [border:1px_solid_#fed7aa]")
-                  }`)}
-                >
-                  <Trophy size={16} />
-                  <span>{r.rank}</span>
+            <div
+              key={idx}
+              className="flex flex-col justify-between rounded-3xl border border-[#cddce5] bg-white p-6 shadow-[0_10px_30px_-10px_rgba(16,44,69,0.06)] transition-all hover:-translate-y-1 hover:border-[#007fb8] hover:shadow-[0_20px_40px_-12px_rgba(0,127,184,0.18)] max-sm:rounded-2xl max-sm:p-3.5"
+            >
+              <div>
+                {/* Card Top: Rank Badge & Stream Tag */}
+                <div className="mb-4 flex items-center justify-between gap-2 max-sm:mb-2.5">
+                  <div className="inline-flex items-center gap-1 rounded-full border border-[#38d995]/50 bg-[#e8f7f2] px-2.5 py-1 text-[11px] font-extrabold text-[#159366] max-sm:text-[9px] max-sm:px-2 max-sm:py-0.5">
+                    <Trophy size={13} className="text-[#159366] max-sm:size-3" />
+                    <span>{r.rank}</span>
+                  </div>
+                  <span className="rounded-md border border-[#cddce5] bg-[#edf2f3] px-2 py-0.5 text-[10.5px] font-bold text-[#007fb8] max-sm:text-[9px]">
+                    O/L Commerce
+                  </span>
                 </div>
-                <span className="text-[length:0.74rem] font-bold text-[#0284c7] bg-[#eff6ff] pt-[3px] pb-[3px] pl-2 pr-2 rounded-[6px]">O/L Commerce</span>
-              </div>
 
-              <div className="mb-4">
-                <h3 className="text-[length:1.12rem] font-extrabold text-[#0f172a] leading-[1.25]">{r.name}</h3>
-                <div className="text-[length:0.8rem] text-[#64748b] mt-0.5">{r.school}</div>
-                <div className="inline-flex items-center gap-1.5 text-[length:0.72rem] font-semibold text-[#059669] bg-[#ecfdf5] pt-1 pb-1 pl-2 pr-2 rounded-[6px] mt-2 leading-[1.2]">
-                  <GraduationCap size={14} />
-                  <span>Business &amp; Accounting Studies</span>
+                {/* Student Info */}
+                <div className="mb-3.5 max-sm:mb-2">
+                  <h3 className="text-[17px] font-black leading-snug text-[#102c45] max-sm:text-[13.5px]">
+                    {r.name}
+                  </h3>
+                  <div className="text-[12px] font-semibold text-[#60768a] max-sm:text-[10.5px]">
+                    {r.school}
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#edf5fa] px-2 py-0.5 text-[10.5px] font-bold text-[#007fb8] max-sm:text-[9px] max-sm:mt-1">
+                    <GraduationCap size={13} className="max-sm:size-3" />
+                    <span>Business &amp; Accounting Studies</span>
+                  </div>
+                </div>
+
+                {/* Quote Box */}
+                <div className="relative mb-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3 pl-7 text-[12.5px] leading-[1.5] text-[#475569] italic max-sm:mb-2.5 max-sm:p-2 max-sm:pl-6 max-sm:text-[10.5px] max-sm:leading-[1.4]">
+                  <Quote
+                    size={15}
+                    className="absolute top-2 left-2 text-[#94a3b8] max-sm:size-3 max-sm:top-1.5 max-sm:left-1.5"
+                  />
+                  <p className="line-clamp-3">{r.quote}</p>
                 </div>
               </div>
 
-              <div className="relative bg-[#f8fafc] pt-3.5 pr-3.5 pb-3.5 pl-8.5 rounded-[12px] mb-5 grow">
-                <Quote size={20} className="absolute top-2.5 left-2 text-[#cbd5e1]" />
-                <p className="text-[length:0.82rem] leading-[1.5] text-[#475569] italic">&ldquo;{r.quote}&rdquo;</p>
-              </div>
-
-              <div className="flex items-center justify-between [border-top:1px_solid_#f1f5f9] pt-3.5 mt-auto">
+              {/* Bottom Card Footer */}
+              <div className="mt-auto flex items-center justify-between border-t border-[#f1f5f9] pt-3 max-sm:pt-2">
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }).map((_, s) => (
                     <Star
                       key={s}
-                      size={15}
-                      fill="#F59E0B"
-                      color="#F59E0B"
+                      size={14}
+                      fill="#f59e0b"
+                      color="#f59e0b"
+                      className="max-sm:size-3"
                     />
                   ))}
                 </div>
-                <span className="text-[length:0.7rem] font-bold text-[#10b981]">O/L Commerce Student</span>
+                <span className="text-[11px] font-black text-[#159366] max-sm:text-[9px]">
+                  9A Batch
+                </span>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* CTA to Full Results Page */}
+        <div className="mt-12 text-center max-sm:mt-8">
+          <Link
+            href="/results"
+            className="group inline-flex items-center gap-3 rounded-full bg-[#102c45] py-2 pr-2 pl-6 text-[13px] font-black text-white shadow-xl transition-all hover:scale-105 hover:bg-[#007fb8] max-sm:text-[11.5px] max-sm:py-1.5 max-sm:pl-4"
+          >
+            <span>View Full 2025 Results Sheet (169+ Champions)</span>
+            <span className="flex size-8 items-center justify-center rounded-full bg-[#0ac9e8] text-[#06314b] transition-transform group-hover:rotate-45 max-sm:size-6">
+              <ArrowUpRight size={16} strokeWidth={2.5} className="max-sm:size-3.5" />
+            </span>
+          </Link>
         </div>
       </div>
     </section>

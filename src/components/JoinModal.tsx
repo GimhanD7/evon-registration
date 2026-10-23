@@ -180,17 +180,32 @@ export default function JoinModal({
                   onChange={(e) => setMode(e.target.value)}
                   className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)]"
                 >
-                  <option value="Islandwide Online (Live + Recordings)">
-                    Islandwide Online (Live Zoom + HD Recordings + Doorstep Books)
+                  <option value="Sakya - Kiribathgoda">
+                    Sakya - Kiribathgoda
                   </option>
-                  <option value="Physical Class (Colombo Branch)">
-                    Physical Class (Rotary / Sasip - Nugegoda, Colombo)
+                  <option value="Science Image - Kadawatha">
+                    Science Image - Kadawatha
                   </option>
-                  <option value="Physical Class (Kandy Branch)">
-                    Physical Class (Sipsewana - Kandy)
+                  <option value="Sipsara - Gampaha">
+                    Sipsara - Gampaha
                   </option>
-                  <option value="Physical Class (Galle Branch)">
-                    Physical Class (Dakuna - Galle)
+                  <option value="Maxford - Ganemulla">
+                    Maxford - Ganemulla
+                  </option>
+                  <option value="Vishwa - Nittambuwa">
+                    Vishwa - Nittambuwa
+                  </option>
+                  <option value="Maxima - Gampaha">
+                    Maxima - Gampaha
+                  </option>
+                  <option value="Shiksha - Sapugaskanda">
+                    Shiksha - Sapugaskanda
+                  </option>
+                  <option value="Siyoneth - Ragama">
+                    Siyoneth - Ragama
+                  </option>
+                  <option value="Islandwide Online (Live Zoom + Recordings)">
+                    Islandwide Online (Live Zoom + HD Recordings)
                   </option>
                 </select>
               </div>

@@ -8,11 +8,11 @@ interface HeaderProps {
 }
 
 const navItems = [
-  { name: "Home", href: "#hero" },
-  { name: "Courses", href: "#courses" },
-  { name: "Results", href: "#results" },
-  { name: "Timetable", href: "#timetable" },
-  { name: "Contact", href: "#contact" },
+  { name: "Home", href: "/#hero" },
+  { name: "Timetable", href: "/#timetable" },
+  { name: "Institutes", href: "/timetable" },
+  { name: "Results", href: "/results" },
+  { name: "Contact", href: "/#contact" },
 ];
 
 export default function Header({

@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import StatsCounter from "@/components/StatsCounter";
 import FeaturePillars from "@/components/FeaturePillars";
-import CourseShowcase from "@/components/CourseShowcase";
+import TimetableSection from "@/components/TimetableSection";
 import TopRanksShowcase from "@/components/TopRanksShowcase";
 import LearningPlatformPreview from "@/components/LearningPlatformPreview";
 import Testimonials from "@/components/Testimonials";
@@ -46,8 +46,8 @@ export default function HomePage() {
         onOpenJoin={() => handleOpenJoin()}
         onOpenVideo={() => setIsVideoOpen(true)}
         onOpenCourses={() => {
-          const coursesEl = document.getElementById("courses");
-          coursesEl?.scrollIntoView({ behavior: "smooth" });
+          const timetableEl = document.getElementById("timetable");
+          timetableEl?.scrollIntoView({ behavior: "smooth" });
         }}
       />
 
@@ -57,17 +57,17 @@ export default function HomePage() {
       {/* 4 Pillars of Success Section */}
       <FeaturePillars onOpenJoin={() => handleOpenJoin()} />
 
-      {/* Courses Catalog Section */}
-      <CourseShowcase onOpenJoin={handleOpenJoin} />
+      {/* Class Timetable Section */}
+      <TimetableSection onOpenJoin={handleOpenJoin} />
 
       {/* Top Ranks Islandwide Hall of Fame */}
       <TopRanksShowcase />
 
       {/* Complete Digital Learning Platform Showcase */}
-      <LearningPlatformPreview onOpenJoin={() => handleOpenJoin()} />
+      {/* <LearningPlatformPreview onOpenJoin={() => handleOpenJoin()} /> */}
 
       {/* Student & Parent Reviews */}
-      <Testimonials />
+      {/* <Testimonials /> */}
 
       {/* Footer */}
       <Footer

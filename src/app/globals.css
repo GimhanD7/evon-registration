@@ -3,12 +3,26 @@
 /* Brand tokens and document defaults shared across the site. */
 @layer base {
 :root {
+  /* User Brand Theme Tokens */
+  --theme-navy: #102c45;
+  --theme-navy-dark: #0c2944;
+  --theme-navy-light: #254967;
+  --theme-ocean: #007fb8;
+  --theme-ocean-soft: #3e70b3;
+  --theme-cyan: #0ac9e8;
+  --theme-cyan-dark: #00b7dd;
+  --theme-mint: #38d995;
+  --theme-mint-dark: #159366;
+  --theme-bg: #edf2f3;
+  --theme-card-border: #cddce5;
+  --theme-muted: #60768a;
+
   /* Brand Color Palette */
-  --primary-blue: #1d4ed8;
-  --primary-blue-hover: #1e40af;
-  --primary-gradient: linear-gradient(135deg, #0284c7 0%, #1d4ed8 50%, #1e3a8a 100%);
-  --blue-glow: rgba(37, 99, 235, 0.28);
-  --cyan-accent: #0ea5e9;
+  --primary-blue: #007fb8;
+  --primary-blue-hover: #0c2944;
+  --primary-gradient: linear-gradient(135deg, #102c45 0%, #007fb8 50%, #0ac9e8 100%);
+  --blue-glow: rgba(0, 127, 184, 0.28);
+  --cyan-accent: #0ac9e8;
   --cyan-light: #e0f2fe;
 
   /* Gold Accents for Brand & Trophies */

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   Phone,
   Mail,
@@ -11,6 +12,9 @@ import {
   BookOpen,
   MessageCircle,
   Sparkles,
+  Calendar,
+  Trophy,
+  ArrowUpRight,
 } from "lucide-react";
 
 interface FooterProps {
@@ -20,37 +24,56 @@ interface FooterProps {
 
 export default function Footer({ onOpenLogin, onOpenJoin }: FooterProps) {
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
-    <footer className="bg-[#0f172a] text-[#94a3b8] pt-15 pb-7.5 relative" id="contact">
-      {/* Pre-footer Call to Action Banner */}
-      <div className="w-full max-w-[var(--container-max)] ml-auto mr-auto pl-6 pr-6 max-[640px]:pl-4 max-[640px]:pr-4">
-        <div className="bg-[linear-gradient(135deg,_#1e3a8a_0%,_#1d4ed8_50%,_#0284c7_100%)] rounded-[24px] p-10 flex items-center justify-between text-[#ffffff] mb-15 [box-shadow:0_20px_45px_-10px_rgba(29,_78,_216,_0.45)] flex-wrap gap-6 max-[640px]:pt-6 max-[640px]:pb-6 max-[640px]:pl-5 max-[640px]:pr-5">
-          <div className="max-w-[600px]">
-            <span className="inline-flex items-center gap-1.5 [background:rgba(254,_240,_138,_0.2)] [border:1px_solid_rgba(254,_240,_138,_0.5)] text-[#fef08a] text-[length:0.72rem] font-extrabold tracking-[1px] pt-1 pb-1 pl-3 pr-3 rounded-full mb-3.5">
-              <Sparkles size={14} /> ADMISSIONS OPEN FOR 2026 &amp; 2027 O/L
+    <footer
+      className="relative bg-[#0c2944] pt-16 pb-8 text-[#94a3b8]"
+      id="contact"
+    >
+      {/* Ambient background glows matching brand theme */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 right-1/4 -z-0 size-[450px] rounded-full bg-[#007fb8]/15 blur-[100px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-10 left-10 -z-0 size-[350px] rounded-full bg-[#0ac9e8]/10 blur-[90px]"
+      />
+
+      {/* Pre-footer Call to Action Banner (Theme Gradient) */}
+      <div className="relative z-10 mx-auto w-full max-w-[var(--container-max)] px-6 max-sm:px-4">
+        <div className="mb-14 flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-white/15 bg-[linear-gradient(135deg,#102c45_0%,#164466_45%,#007fb8_100%)] p-10 text-white shadow-[0_20px_45px_-10px_rgba(12,41,68,0.5)] max-sm:p-6">
+          <div className="max-w-[620px]">
+            <span className="mb-3.5 inline-flex items-center gap-1.5 rounded-full border border-[#0ac9e8]/40 bg-[#0ac9e8]/15 px-3.5 py-1 text-[11px] font-black tracking-wider text-[#0ac9e8] uppercase backdrop-blur-md">
+              <Sparkles size={13} fill="currentColor" /> ADMISSIONS OPEN FOR 2026 &amp; 2027 O/L
             </span>
-            <h2 className="text-[length:1.85rem] font-[850] leading-[1.25] text-[#ffffff] mb-2 max-[640px]:text-[length:1.4rem]">
+            <h2 className="mb-2 text-[28px] font-black leading-[1.2] text-white max-sm:text-[22px]">
               Start Your O/L Commerce Journey Today
             </h2>
-            <p className="text-[length:0.95rem] text-[#e0f2fe] leading-[1.5]">
-              Join over 5,000+ ambitious commerce students across Sri Lanka guided by Evon Aravinda.
+            <p className="text-[14.5px] leading-[1.65] text-[#d9edf4]">
+              Join over 5,000+ ambitious commerce students across Sri Lanka guided by Evon Aravinda. Physical classes at 8 premier institutes or islandwide online learning.
             </p>
           </div>
-          <div className="flex items-center gap-3.5 flex-wrap">
+
+          <div className="flex flex-wrap items-center gap-3.5">
             <button
               type="button"
               onClick={onOpenJoin}
-              className="bg-[#ffffff] text-[#1d4ed8] text-[length:0.98rem] font-bold pt-[13px] pb-[13px] pl-6.5 pr-6.5 rounded-full [box-shadow:0_6px_18px_rgba(0,_0,_0,_0.2)] [transition:all_0.2s_ease] cursor-pointer hover:bg-[#f8fafc] hover:[transform:translateY(-2px)] hover:[box-shadow:0_10px_24px_rgba(0,_0,_0,_0.3)]"
+              className="group inline-flex items-center gap-3 rounded-full bg-[#0ac9e8] py-2.5 pr-2 pl-6 text-[13px] font-black text-[#06314b] shadow-lg transition-transform hover:scale-105 hover:bg-[#38d995]"
             >
-              Register for Classes ➔
+              Register for Classes
+              <span className="flex size-8 items-center justify-center rounded-full bg-[#06314b] text-white transition-transform group-hover:rotate-45">
+                <ArrowUpRight size={18} strokeWidth={2.5} />
+              </span>
             </button>
             <button
               type="button"
               onClick={onOpenLogin}
-              className="[background:rgba(255,_255,_255,_0.15)] [backdrop-filter:blur(8px)] [border:1.5px_solid_rgba(255,_255,_255,_0.4)] text-[#ffffff] text-[length:0.98rem] font-bold pt-3 pb-3 pl-6 pr-6 rounded-full [transition:all_0.2s_ease] cursor-pointer hover:[background:rgba(255,_255,_255,_0.25)] hover:[transform:translateY(-2px)]"
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3.5 text-[13px] font-bold text-white backdrop-blur-md transition-colors hover:bg-white/20"
             >
               Student LMS Login
             </button>
@@ -58,132 +81,216 @@ export default function Footer({ onOpenLogin, onOpenJoin }: FooterProps) {
         </div>
       </div>
 
-      <div className="w-full max-w-[var(--container-max)] ml-auto mr-auto pl-6 pr-6 max-[640px]:pl-4 max-[640px]:pr-4">
-        <div className="grid grid-cols-[1.3fr_1fr_1fr_1.1fr] gap-10 pb-12.5 [border-bottom:1px_solid_rgba(255,_255,_255,_0.1)] max-[1024px]:grid-cols-[repeat(2,_1fr)] max-[640px]:grid-cols-[1fr]">
+      {/* Main Footer Links Grid (Theme Colors) */}
+      <div className="relative z-10 mx-auto w-full max-w-[var(--container-max)] px-6 max-sm:px-4">
+        <div className="grid grid-cols-[1.3fr_1fr_1.1fr_1.1fr] gap-10 border-b border-white/10 pb-12 max-lg:grid-cols-2 max-sm:grid-cols-1">
           {/* Col 1: Brand Info */}
           <div className="flex flex-col">
-            <div className="flex items-center gap-3 mb-4.5">
-              <div className="flex items-center justify-center">
-                <svg
-                  width="36"
-                  height="34"
-                  viewBox="0 0 34 32"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <rect x="2" y="16" width="6" height="14" rx="2" fill="#F59E0B" />
-                  <rect x="11" y="9" width="6" height="21" rx="2" fill="#D97706" />
-                  <rect x="20" y="2" width="6" height="28" rx="2" fill="#B45309" />
-                  <path
-                    d="M4 14L13 7L21 1.5L30 1.5M30 1.5V9M30 1.5L22 9"
-                    stroke="#F59E0B"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+            <div className="mb-4.5 flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="flex size-11 shrink-0 flex-col items-center justify-center rounded-[13px] bg-[linear-gradient(145deg,#a6f4ce_0%,#38d995_55%,#19b978_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
+              >
+                <span className="text-[20px] leading-none font-black tracking-[-1px]">EA</span>
+                <span className="mt-0.5 text-[6px] leading-none font-extrabold tracking-[0.4px]">EDUCATION</span>
+              </span>
               <div className="flex flex-col">
-                <div className="text-[length:1.25rem] font-black leading-[1.1]">
-                  <span className="text-[#fbbf24]">ACCESS TO </span>
-                  <span className="text-[#f59e0b]">SUCCESS</span>
-                </div>
-                <div className="text-[length:0.68rem] font-bold tracking-[1px] text-[#cbd5e1] uppercase">with EVON ARAVINDA</div>
+                <span className="text-[18px] leading-tight font-black tracking-[-0.4px] text-white">
+                  Access to Success
+                </span>
+                <span className="text-[12px] leading-tight font-bold text-[#0ac9e8]">
+                  with Evon Aravinda
+                </span>
               </div>
             </div>
 
-            <p className="text-[length:0.88rem] leading-[1.6] text-[#94a3b8] mb-5">
-              Sri Lanka&apos;s premier Commerce education platform offering world-class G.C.E. Ordinary Level Business & Accounting Studies instruction.
+            <p className="mb-5 text-[13.5px] leading-[1.65] text-[#cddce5]">
+              Sri Lanka&apos;s leading English Medium Business &amp; Accounting Studies academy, delivering proven results across 8 major institutes and islandwide.
             </p>
 
-            <div className="text-[length:0.72rem] font-extrabold tracking-[1.5px] text-[#38bdf8] [background:rgba(56,_189,_248,_0.1)] pt-2 pb-2 pl-3.5 pr-3.5 rounded-[8px] w-[fit-content] [border:1px_solid_rgba(56,_189,_248,_0.2)] [&_span]:text-[#e0f2fe]">
+            <div className="w-fit rounded-xl border border-[#0ac9e8]/30 bg-[#0ac9e8]/10 px-3.5 py-2 text-[10.5px] font-black tracking-wider text-[#0ac9e8]">
               <span>DISCIPLINE</span> • <span>CONCEPT</span> • <span>PRACTICE</span> • <span>RESULTS</span>
             </div>
           </div>
 
-          {/* Col 2: Academic Programs */}
-          <div >
-            <h4 className="text-[length:1.02rem] font-extrabold text-[#ffffff] mb-5 tracking-[-0.2px]">Academic Programs</h4>
-            <ul className="list-none flex flex-col gap-3 [&_a]:text-[length:0.88rem] [&_a]:text-[#94a3b8] [&_a]:[transition:color_0.2s_ease,_transform_0.2s_ease] [&_a]:inline-block [&_a:hover]:text-[#38bdf8] [&_a:hover]:[transform:translateX(3px)]">
-              <li><a href="#courses">2026 O/L Business & Accounting Studies</a></li>
-              <li><a href="#courses">2026 O/L Commerce Theory</a></li>
-              <li><a href="#courses">2026 O/L Accounting Practice</a></li>
-              <li><a href="#courses">2025 O/L Speed Revision &amp; Papers</a></li>
-              <li><a href="#courses">2027 O/L Foundation Batch</a></li>
-              <li><a href="#courses">Complete O/L Commerce Study Package</a></li>
+          {/* Col 2: Timetable & Navigation */}
+          <div>
+            <h4 className="mb-5 text-[16px] font-black tracking-tight text-white">
+              Weekly Schedules
+            </h4>
+            <ul className="flex list-none flex-col gap-3 text-[13.5px]">
+              <li>
+                <Link
+                  href="/timetable"
+                  className="inline-flex items-center gap-1.5 text-[#cddce5] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
+                >
+                  <Calendar size={14} className="text-[#007fb8]" />
+                  All 8 Institutes Timetable
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/results"
+                  className="inline-flex items-center gap-1.5 text-[#cddce5] transition-all hover:translate-x-1 hover:text-[#38d995]"
+                >
+                  <Trophy size={14} className="text-[#38d995]" />
+                  2025 O/L Results (169+ Achievers)
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="/#timetable"
+                  className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
+                >
+                  Grade 10 Theory Batches
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/#timetable"
+                  className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
+                >
+                  Grade 11 Theory Batches
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/#timetable"
+                  className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
+                >
+                  Model Paper &amp; Speed Exam Classes
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/#hero"
+                  className="inline-block text-[#94a3b8] transition-all hover:translate-x-1 hover:text-[#0ac9e8]"
+                >
+                  Home &amp; Course Overview
+                </a>
+              </li>
             </ul>
           </div>
 
-          {/* Col 3: Class Locations & Branches */}
-          <div >
-            <h4 className="text-[length:1.02rem] font-extrabold text-[#ffffff] mb-5 tracking-[-0.2px]">Lecture Locations</h4>
-            <ul className="list-none flex flex-col gap-3 [&_li]:text-[length:0.84rem] [&_li]:leading-[1.45] [&_li]:text-[#94a3b8] [&_strong]:text-[#e2e8f0]">
-              <li>
-                <strong>Colombo:</strong> Rotary Hall &amp; Sasip (Nugegoda)
+          {/* Col 3: Institute Locations */}
+          <div>
+            <h4 className="mb-5 text-[16px] font-black tracking-tight text-white">
+              Physical Centers (8)
+            </h4>
+            <ul className="flex list-none flex-col gap-2.5 text-[13px] text-[#94a3b8]">
+              <li className="flex items-start gap-2">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[#007fb8]" />
+                <span>
+                  <strong className="text-white">Kiribathgoda:</strong> Sakya Higher Education
+                </span>
               </li>
-              <li>
-                <strong>Kandy:</strong> Sipsewana Hall, William Gopallawa Mawatha
+              <li className="flex items-start gap-2">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[#007fb8]" />
+                <span>
+                  <strong className="text-white">Kadawatha:</strong> Science Image Institute
+                </span>
               </li>
-              <li>
-                <strong>Galle:</strong> Dakuna Hall, Karapitiya
+              <li className="flex items-start gap-2">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[#007fb8]" />
+                <span>
+                  <strong className="text-white">Gampaha:</strong> Sipsara &amp; Maxima Institutes
+                </span>
               </li>
-              <li>
-                <strong>Islandwide Online:</strong> Live Zoom + HD Cloud LMS + Doorstep Printed Books
+              <li className="flex items-start gap-2">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[#007fb8]" />
+                <span>
+                  <strong className="text-white">Ganemulla:</strong> Maxford Institute
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[#007fb8]" />
+                <span>
+                  <strong className="text-white">Nittambuwa / Sapugaskanda / Ragama:</strong> Vishwa, Shiksha &amp; Siyoneth
+                </span>
               </li>
             </ul>
           </div>
 
           {/* Col 4: Contact & Hotlines */}
           <div className="flex flex-col gap-4">
-            <h4 className="text-[length:1.02rem] font-extrabold text-[#ffffff] mb-5 tracking-[-0.2px]">Admissions &amp; Support</h4>
+            <h4 className="mb-1 text-[16px] font-black tracking-tight text-white">
+              Admissions &amp; Support
+            </h4>
+
             <div className="flex items-start gap-3">
-              <Phone size={17} className="text-[#38bdf8] mt-[3px] shrink-0" />
+              <Phone size={17} className="mt-1 shrink-0 text-[#0ac9e8]" />
               <div>
-                <div className="text-[length:0.72rem] text-[#64748b] uppercase font-bold tracking-[0.5px]">Hotline / Inquiries</div>
-                <div className="text-[length:0.88rem] text-[#f1f5f9] font-semibold mt-0.5">+94 77 123 4567</div>
+                <div className="text-[11px] font-bold tracking-wider uppercase text-[#60768a]">
+                  Hotline / Inquiries
+                </div>
+                <div className="text-[14px] font-extrabold text-white">
+                  +94 77 123 4567
+                </div>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <MessageCircle size={17} className="text-[#38bdf8] mt-[3px] shrink-0" />
+              <MessageCircle size={17} className="mt-1 shrink-0 text-[#38d995]" />
               <div>
-                <div className="text-[length:0.72rem] text-[#64748b] uppercase font-bold tracking-[0.5px]">WhatsApp Coordinator</div>
-                <div className="text-[length:0.88rem] text-[#f1f5f9] font-semibold mt-0.5">+94 71 987 6543</div>
+                <div className="text-[11px] font-bold tracking-wider uppercase text-[#60768a]">
+                  WhatsApp Coordinator
+                </div>
+                <div className="text-[14px] font-extrabold text-white">
+                  +94 71 987 6543
+                </div>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <Mail size={17} className="text-[#38bdf8] mt-[3px] shrink-0" />
+              <Mail size={17} className="mt-1 shrink-0 text-[#007fb8]" />
               <div>
-                <div className="text-[length:0.72rem] text-[#64748b] uppercase font-bold tracking-[0.5px]">Student Inquiries</div>
-                <div className="text-[length:0.88rem] text-[#f1f5f9] font-semibold mt-0.5">info@accesstosuccess.lk</div>
+                <div className="text-[11px] font-bold tracking-wider uppercase text-[#60768a]">
+                  Student Inquiries
+                </div>
+                <div className="text-[14px] font-extrabold text-white">
+                  info@accesstosuccess.lk
+                </div>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <Clock size={17} className="text-[#38bdf8] mt-[3px] shrink-0" />
+              <Clock size={17} className="mt-1 shrink-0 text-[#0ac9e8]" />
               <div>
-                <div className="text-[length:0.72rem] text-[#64748b] uppercase font-bold tracking-[0.5px]">Support Hours</div>
-                <div className="text-[length:0.88rem] text-[#f1f5f9] font-semibold mt-0.5">Daily 8:00 AM - 8:00 PM</div>
+                <div className="text-[11px] font-bold tracking-wider uppercase text-[#60768a]">
+                  Support Hours
+                </div>
+                <div className="text-[14px] font-extrabold text-white">
+                  Daily 8:00 AM - 8:00 PM
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="flex items-center justify-between pt-6 text-[length:0.82rem] text-[#64748b] flex-wrap gap-3.5 max-[640px]:flex-col max-[640px]:text-center">
-          <div >
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-6 text-[12.5px] text-[#72859c] max-sm:flex-col max-sm:text-center">
+          <div>
             © 2026 Access to Success with Evon Aravinda. All rights reserved.
           </div>
-          <div className="flex items-center gap-3 [&_a]:text-[#94a3b8] [&_a]:[transition:color_0.2s_ease] [&_a:hover]:text-[#ffffff]">
-            <a href="#privacy">Privacy Policy</a>
+          <div className="flex items-center gap-3">
+            <a
+              href="#privacy"
+              className="text-[#94a3b8] transition-colors hover:text-[#0ac9e8]"
+            >
+              Privacy Policy
+            </a>
             <span>•</span>
-            <a href="#terms">Terms of Enrollment</a>
+            <a
+              href="#terms"
+              className="text-[#94a3b8] transition-colors hover:text-[#0ac9e8]"
+            >
+              Terms of Enrollment
+            </a>
             <span>•</span>
             <button
               type="button"
               onClick={scrollToTop}
-              className="inline-flex items-center gap-1.5 [background:rgba(255,_255,_255,_0.08)] text-[#e2e8f0] pt-1.5 pb-1.5 pl-3 pr-3 rounded-full text-[length:0.78rem] font-semibold cursor-pointer [transition:all_0.2s_ease] hover:[background:rgba(255,_255,_255,_0.16)] hover:text-[#ffffff]"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[12px] font-bold text-[#e2e8f0] transition-all hover:bg-[#007fb8] hover:text-white"
               aria-label="Back to top"
             >
               Back to Top <ArrowUp size={14} />
