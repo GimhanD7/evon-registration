@@ -1,69 +1,107 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import StatsCounter from "@/components/StatsCounter";
+import FeaturePillars from "@/components/FeaturePillars";
+import CourseShowcase from "@/components/CourseShowcase";
+import TopRanksShowcase from "@/components/TopRanksShowcase";
+import LearningPlatformPreview from "@/components/LearningPlatformPreview";
+import Testimonials from "@/components/Testimonials";
+import Footer from "@/components/Footer";
+import StudentLoginModal from "@/components/StudentLoginModal";
+import JoinModal from "@/components/JoinModal";
+import VideoModal from "@/components/VideoModal";
+import SearchModal from "@/components/SearchModal";
+
+export default function HomePage() {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<string | undefined>(
+    undefined
+  );
+
+  const handleOpenJoin = (courseName?: string) => {
+    setSelectedCourse(courseName);
+    setIsJoinOpen(true);
+  };
+
+  const handleSelectCourseFromSearch = (courseName: string) => {
+    setSelectedCourse(courseName);
+    setIsJoinOpen(true);
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen">
+      {/* Navigation Header */}
+      <Header
+        onOpenJoin={() => handleOpenJoin("2027 O/L Commerce Foundation Batch")}
+      />
+
+      {/* Hero Section matching design image */}
+      <Hero
+        onOpenJoin={() => handleOpenJoin()}
+        onOpenVideo={() => setIsVideoOpen(true)}
+        onOpenCourses={() => {
+          const coursesEl = document.getElementById("courses");
+          coursesEl?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
+
+      {/* Stats Counter Section */}
+      <StatsCounter onOpenJoin={() => handleOpenJoin()} />
+
+      {/* 4 Pillars of Success Section */}
+      <FeaturePillars onOpenJoin={() => handleOpenJoin()} />
+
+      {/* Courses Catalog Section */}
+      <CourseShowcase onOpenJoin={handleOpenJoin} />
+
+      {/* Top Ranks Islandwide Hall of Fame */}
+      <TopRanksShowcase />
+
+      {/* Complete Digital Learning Platform Showcase */}
+      <LearningPlatformPreview onOpenJoin={() => handleOpenJoin()} />
+
+      {/* Student & Parent Reviews */}
+      <Testimonials />
+
+      {/* Footer */}
+      <Footer
+        onOpenLogin={() => setIsLoginOpen(true)}
+        onOpenJoin={() => handleOpenJoin()}
+      />
+
+      {/* Interactive Modals */}
+      <StudentLoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+      />
+
+      <JoinModal
+        key={selectedCourse ?? "general"}
+        isOpen={isJoinOpen}
+        initialCourse={selectedCourse}
+        onClose={() => {
+          setIsJoinOpen(false);
+          setSelectedCourse(undefined);
+        }}
+      />
+
+      <VideoModal
+        isOpen={isVideoOpen}
+        onClose={() => setIsVideoOpen(false)}
+        onOpenJoin={() => handleOpenJoin()}
+      />
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectCourse={handleSelectCourseFromSearch}
+      />
+    </main>
   );
 }
