@@ -92,7 +92,7 @@ export default function LearningPlatformPreview({
                 height={400}
                 className="w-full h-auto block object-cover [transition:transform_0.4s_ease] ui-platform-showcaseImg"
               />
-              <div className="absolute bottom-5 left-5 right-5 [background:rgba(255,_255,_255,_0.9)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)] [border:1.5px_solid_rgba(255,_255,_255,_0.95)] rounded-[16px] pt-3.5 pb-3.5 pl-4.5 pr-4.5 flex items-center gap-3.5 [box-shadow:0_10px_25px_-5px_rgba(15,_23,_42,_0.1)]">
+              <div className="absolute bottom-5 left-5 right-5 max-sm:bottom-2 max-sm:left-2 max-sm:right-2 max-sm:p-3 max-sm:gap-2 [background:rgba(255,_255,_255,_0.9)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)] [border:1.5px_solid_rgba(255,_255,_255,_0.95)] rounded-[16px] pt-3.5 pb-3.5 pl-4.5 pr-4.5 flex items-center gap-3.5 [box-shadow:0_10px_25px_-5px_rgba(15,_23,_42,_0.1)]">
                 <div className="w-[44px] h-[44px] rounded-[12px] bg-[#eff6ff] text-[#1d4ed8] flex items-center justify-center shrink-0">
                   <ShieldCheck size={22} className="text-[#1d4ed8]" />
                 </div>
@@ -123,9 +123,9 @@ export default function LearningPlatformPreview({
                     <div className="w-[36px] h-[36px] rounded-[10px] bg-[#eff6ff] text-[#1d4ed8] flex items-center justify-center shrink-0 ui-platform-tabIconCircle">{feat.icon}</div>
                     <div className="text-[length:1.05rem] font-extrabold text-[#0f172a]">{feat.title}</div>
                   </div>
-                  <p className="text-[length:0.86rem] text-[#475569] leading-[1.5] pl-12">{feat.desc}</p>
+                  <p className="text-[length:0.86rem] text-[#475569] leading-[1.5] pl-12 max-sm:pl-0">{feat.desc}</p>
                   {activeTab === idx && (
-                    <div className="mt-3 pl-12 flex flex-col gap-2 animate-[fadeIn_0.25s_ease-out]">
+                    <div className="mt-3 pl-12 max-sm:pl-0 flex flex-col gap-2 animate-[fadeIn_0.25s_ease-out]">
                       {feat.points.map((pt, pIdx) => (
                         <div key={pIdx} className="flex items-center gap-2 text-[length:0.82rem] font-semibold text-[#1e293b]">
                           <Check size={15} className="text-[#10b981] shrink-0" />
@@ -142,7 +142,7 @@ export default function LearningPlatformPreview({
               <button
                 type="button"
                 onClick={onOpenJoin}
-                className="inline-flex items-center justify-center gap-3 bg-[linear-gradient(135deg,_#0284c7_0%,_#1d4ed8_60%,_#1e3a8a_100%)] text-[#ffffff] font-semibold text-[length:1rem] pt-[13px] pb-[13px] pl-6.5 pr-6.5 rounded-[var(--radius-pill)] [box-shadow:0_10px_25px_-4px_rgba(29,_78,_216,_0.42)] [transition:all_0.25s_cubic-bezier(0.16,_1,_0.3,_1)] cursor-pointer hover:[transform:translateY(-2px)] hover:[box-shadow:0_16px_32px_-4px_rgba(29,_78,_216,_0.52)] hover:bg-[linear-gradient(135deg,_#0369a1_0%,_#1e40af_60%,_#172554_100%)]"
+                className="max-w-full inline-flex items-center justify-center gap-3 bg-[linear-gradient(135deg,_#0284c7_0%,_#1d4ed8_60%,_#1e3a8a_100%)] text-[#ffffff] font-semibold text-[length:1rem] pt-[13px] pb-[13px] pl-6.5 pr-6.5 rounded-[var(--radius-pill)] [box-shadow:0_10px_25px_-4px_rgba(29,_78,_216,_0.42)] [transition:all_0.25s_cubic-bezier(0.16,_1,_0.3,_1)] cursor-pointer hover:[transform:translateY(-2px)] hover:[box-shadow:0_16px_32px_-4px_rgba(29,_78,_216,_0.52)] hover:bg-[linear-gradient(135deg,_#0369a1_0%,_#1e40af_60%,_#172554_100%)]"
               >
                 Access the Student Portal Now ➔
               </button>

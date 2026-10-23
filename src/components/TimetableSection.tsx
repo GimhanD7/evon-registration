@@ -32,7 +32,7 @@ export default function TimetableSection({
     <section
       id="timetable"
       aria-labelledby="timetable-heading"
-      className="relative isolate bg-[#edf2f3] py-20 max-lg:py-14 max-sm:py-10"
+      className="relative isolate overflow-hidden bg-[#edf2f3] py-20 max-lg:py-14 max-sm:py-10"
     >
       {/* Ambient background glows matching Hero */}
       <div
@@ -108,8 +108,8 @@ export default function TimetableSection({
           </div>
         </div>
 
-        {/* Timetable Cards Grid - Exactly 2 Cards Per Row on All Screens */}
-        <div className="mt-10 grid grid-cols-2 gap-6 max-sm:gap-3.5">
+        {/* Timetable cards stack on phones and expand on larger screens */}
+        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 max-sm:gap-4">
           {filteredInstitutes.map((inst) => {
             const grade10Slots = inst.slots.filter((s) => s.grade === "Grade 10");
             const grade11Slots = inst.slots.filter((s) => s.grade === "Grade 11");
@@ -118,7 +118,7 @@ export default function TimetableSection({
             return (
               <div
                 key={inst.id}
-                className="group relative flex flex-col justify-between rounded-3xl border border-[#cddce5] bg-white p-7 shadow-[0_6px_25px_-6px_rgba(16,44,69,0.06)] transition-all hover:border-[#007fb8]/70 hover:shadow-[0_16px_36px_-8px_rgba(0,127,184,0.18)] max-sm:rounded-2xl max-sm:p-3.5"
+                className="group relative flex min-w-0 flex-col justify-between rounded-3xl border border-[#cddce5] bg-white p-7 shadow-[0_6px_25px_-6px_rgba(16,44,69,0.06)] transition-all hover:border-[#007fb8]/70 hover:shadow-[0_16px_36px_-8px_rgba(0,127,184,0.18)] max-sm:rounded-2xl max-sm:p-5"
               >
                 <div>
                   {/* Card Header */}

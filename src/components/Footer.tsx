@@ -31,7 +31,7 @@ export default function Footer({ onOpenLogin, onOpenJoin }: FooterProps) {
 
   return (
     <footer
-      className="relative bg-[#0c2944] pt-16 pb-8 text-[#94a3b8]"
+      className="relative overflow-hidden bg-[#0c2944] pt-16 pb-8 text-[#94a3b8]"
       id="contact"
     >
       {/* Ambient background glows matching brand theme */}

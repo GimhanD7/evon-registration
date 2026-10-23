@@ -220,7 +220,7 @@ export default function ResultsPage() {
             <div className="flex flex-col gap-5">
               {/* Search Bar & School Selector */}
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="relative flex-1 min-w-[280px]">
+                <div className="relative min-w-0 w-full flex-1">
                   <Search
                     size={18}
                     className="absolute top-1/2 left-3.5 -translate-y-1/2 text-[#007fb8]"
@@ -243,12 +243,12 @@ export default function ResultsPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <School size={16} className="text-[#007fb8]" />
                   <select
                     value={selectedSchool}
                     onChange={(e) => setSelectedSchool(e.target.value)}
-                    className="rounded-xl border border-[#cddce5] bg-[#edf2f3] px-3.5 py-2.5 text-[12px] font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    className="min-w-0 max-w-full flex-1 rounded-xl border border-[#cddce5] bg-[#edf2f3] px-3.5 py-2.5 text-[12px] font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
                   >
                     <option value="all">
                       All Schools ({uniqueSchools.length})
@@ -349,7 +349,7 @@ export default function ResultsPage() {
           {(selectedGradeTab !== "all" ||
             selectedSchool !== "all" ||
             searchQuery.trim() !== "") && (
-            <div className="mt-5 flex items-center justify-between rounded-xl border border-[#b9e6fe] bg-[#e0f2fe] px-5 py-2.5 text-[13px] text-[#0369a1] print:hidden">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b9e6fe] bg-[#e0f2fe] px-5 py-2.5 text-[13px] text-[#0369a1] print:hidden">
               <div className="flex flex-wrap items-center gap-2 font-semibold">
                 <span>Showing:</span>
                 <span className="rounded-md bg-white px-2.5 py-0.5 font-bold shadow-xs text-[#102c45]">

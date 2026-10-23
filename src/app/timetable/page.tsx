@@ -182,7 +182,7 @@ export default function TimetablePage() {
             <div className="flex flex-col gap-5">
               {/* Search Bar */}
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="relative flex-1 min-w-[280px]">
+                <div className="relative min-w-0 w-full flex-1">
                   <Search
                     size={18}
                     className="absolute top-1/2 left-3.5 -translate-y-1/2 text-[#007fb8]"
@@ -259,7 +259,7 @@ export default function TimetablePage() {
 
           {/* Active Search / Filter Indicator */}
           {(selectedInstituteId !== "all" || searchQuery.trim() !== "") && (
-            <div className="mt-5 flex items-center justify-between rounded-xl border border-[#b9e6fe] bg-[#e0f2fe] px-5 py-2.5 text-[13px] text-[#0369a1] print:hidden">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b9e6fe] bg-[#e0f2fe] px-5 py-2.5 text-[13px] text-[#0369a1] print:hidden">
               <div className="flex flex-wrap items-center gap-2 font-semibold">
                 <span>Active Filter:</span>
                 {selectedInstituteId !== "all" && (
@@ -346,7 +346,7 @@ export default function TimetablePage() {
                               {grade10Slots.map((slot, sIdx) => (
                                 <div
                                   key={sIdx}
-                                  className="flex items-center justify-between border-b border-[#e2e8f0] pb-2 last:border-b-0 last:pb-0 text-[14px]"
+                                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e8f0] pb-2 last:border-b-0 last:pb-0 text-[14px]"
                                 >
                                   <div className="flex items-center gap-2.5">
                                     {slot.group && (
@@ -382,7 +382,7 @@ export default function TimetablePage() {
                               {grade11Slots.map((slot, sIdx) => (
                                 <div
                                   key={sIdx}
-                                  className="flex items-center justify-between border-b border-[#e2e8f0] pb-2 last:border-b-0 last:pb-0 text-[14px]"
+                                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e8f0] pb-2 last:border-b-0 last:pb-0 text-[14px]"
                                 >
                                   <div className="flex items-center gap-2.5">
                                     {slot.group && (

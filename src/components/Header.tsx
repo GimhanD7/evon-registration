@@ -39,7 +39,7 @@ export default function Header({
               <span className="text-[20px] leading-none font-black tracking-[-1px]">EA</span>
               <span className="mt-0.5 text-[6px] leading-none font-extrabold tracking-[0.4px]">EDUCATION</span>
             </span>
-            <span className="flex flex-col gap-0.5">
+            <span className="flex min-w-0 flex-col gap-0.5 max-[420px]:hidden">
               <span className="text-[17px] leading-tight font-bold tracking-[-0.4px] text-[#102c45] max-[640px]:text-[12px]">Access to Success</span>
               <span className="text-[12px] leading-tight font-medium text-[#72859c] max-[640px]:text-[9px]">with Evon Aravinda</span>
             </span>
@@ -66,7 +66,7 @@ export default function Header({
                 setMobileMenuOpen(false);
                 onOpenJoin();
               }}
-              className="rounded-full bg-[#0c2944] px-[22px] py-3 text-[12px] leading-4 font-bold text-white shadow-[0_4px_9px_-4px_rgba(12,41,68,0.3)] transition-colors hover:bg-[#164466] max-[640px]:max-w-[135px] max-[640px]:px-3 max-[640px]:py-2.5 max-[640px]:text-[10px]"
+              className="rounded-full bg-[#0c2944] px-[22px] py-3 text-[12px] leading-4 font-bold text-white shadow-[0_4px_9px_-4px_rgba(12,41,68,0.3)] transition-colors hover:bg-[#164466] min-h-11 max-[640px]:max-w-[135px] max-[640px]:px-3 max-[640px]:py-2.5 max-[640px]:text-[10px]"
             >
               2027 New Students Register
             </button>
@@ -77,7 +77,7 @@ export default function Header({
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-navigation"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="hidden size-9 items-center justify-center rounded-full text-[#102c45] transition-colors hover:bg-[#edf9f3] max-[1100px]:flex"
+              className="hidden size-11 shrink-0 items-center justify-center rounded-full text-[#102c45] transition-colors hover:bg-[#edf9f3] max-[1100px]:flex"
             >
               {mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
             </button>
