@@ -120,10 +120,11 @@ export default function StudentLoginModal({
                   onChange={(e) => setBatch(e.target.value)}
                   className="w-full pt-3 pb-3 pl-3.5 pr-3.5 rounded-[12px] [border:1.5px_solid_#cbd5e1] text-[length:0.92rem] font-[inherit] text-[#0f172a] bg-[#ffffff] [transition:border-color_0.2s_ease,_box-shadow_0.2s_ease] [outline:none] focus:[border-color:#1d4ed8] focus:[box-shadow:0_0_0_3px_rgba(29,_78,_216,_0.15)] max-sm:text-base"
                 >
-                  <option value="2026">2026 O/L Commerce Theory Batch</option>
-                  <option value="2025">2025 O/L Speed Revision &amp; Paper</option>
-                  <option value="2027">2027 O/L Foundation Batch</option>
-                  <option value="special">Special Accounting Masterclass</option>
+                  {/* <option value="2026">2026 O/L Commerce Theory Batch</option>
+                  <option value="2025">2025 O/L Speed Revision &amp; Paper</option> */}
+                  <option value="2027">2027 O/L Grade 10</option>
+                  <option value="2027">2027 O/L Grade 11</option>
+                  {/* <option value="special">Special Accounting Masterclass</option> */}
                 </select>
               </div>
 

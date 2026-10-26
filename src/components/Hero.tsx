@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ArrowUpRight, BookOpen, Play, Sparkles } from "lucide-react";
+import educatorCutout from "../../public/images/educator-cutout.png";
 
 interface HeroProps {
   onOpenJoin: () => void;
@@ -88,7 +89,7 @@ export default function Hero({
 
       <div className="pointer-events-none absolute right-0 bottom-0 h-[90%] w-[51%] max-lg:right-[4%] max-lg:h-[530px] max-lg:w-[85%] max-sm:right-[-5%] max-sm:h-[clamp(330px,108vw,440px)] max-sm:w-full">
         <Image
-          src="/images/educator-cutout.png"
+          src={educatorCutout}
           alt="Evon Aravinda, your O/L Commerce educator"
           fill
           priority
