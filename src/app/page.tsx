@@ -7,8 +7,8 @@ import StatsCounter from "@/components/StatsCounter";
 import FeaturePillars from "@/components/FeaturePillars";
 import TimetableSection from "@/components/TimetableSection";
 import TopRanksShowcase from "@/components/TopRanksShowcase";
-import LearningPlatformPreview from "@/components/LearningPlatformPreview";
-import Testimonials from "@/components/Testimonials";
+import StudentVideoTestimonials from "@/components/StudentVideoTestimonials";
+import ClassGallery from "@/components/ClassGallery";
 import Footer from "@/components/Footer";
 import StudentLoginModal from "@/components/StudentLoginModal";
 import JoinModal from "@/components/JoinModal";
@@ -63,11 +63,11 @@ export default function HomePage() {
       {/* Top Ranks Islandwide Hall of Fame */}
       <TopRanksShowcase />
 
-      {/* Complete Digital Learning Platform Showcase */}
-      {/* <LearningPlatformPreview onOpenJoin={() => handleOpenJoin()} /> */}
+      {/* Student Video Comments & Success Stories */}
+      <StudentVideoTestimonials onOpenJoin={handleOpenJoin} />
 
-      {/* Student & Parent Reviews */}
-      {/* <Testimonials /> */}
+      {/* Classroom Moments & Life at the Class Gallery */}
+      <ClassGallery />
 
       {/* Footer */}
       <Footer

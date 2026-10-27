@@ -21,7 +21,8 @@ interface HeaderProps {
 const navItems = [
   { name: "Home", href: "/#hero" },
   { name: "Timetable", href: "/#timetable" },
-  { name: "Institutes", href: "/timetable" },
+  { name: "Class Photos", href: "/gallery" },
+  { name: "Reviews", href: "/#student-videos" },
   { name: "Results", href: "/results" },
   { name: "Contact", href: "/#contact" },
 ];

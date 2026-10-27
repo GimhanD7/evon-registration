@@ -14,10 +14,12 @@ export interface InstituteTimetable {
   badgeColor?: string;
   address?: string;
   phone?: string;
+  isOnline?: boolean;
   slots: ClassSlot[];
 }
 
 export const institutesData: InstituteTimetable[] = [
+  
   {
     id: "sakya-kiribathgoda",
     name: "SAKYA",
@@ -236,4 +238,29 @@ export const institutesData: InstituteTimetable[] = [
       },
     ],
   },
+  {
+    id: "online-islandwide",
+    name: "ONLINE CLASS",
+    location: "ISLANDWIDE / ZOOM LIVE",
+    fullName: "Access to Success Online Academy",
+    isOnline: true,
+    address: "Live Zoom Interactive Sessions + High-Speed Recorded LMS",
+    phone: "077 889 9000",
+    slots: [
+      {
+        grade: "Grade 10",
+        group: "Paper Class",
+        day: "Monday",
+        time: "9.00 - 10.30 pm",
+        type: "Paper Class",
+      },
+      {
+        grade: "Grade 11",
+        group: "Paper Class",
+        day: "Friday",
+        time: "9.00 - 10.30 pm",
+        type: "Paper Class",
+      },
+    ],
+  }
 ];

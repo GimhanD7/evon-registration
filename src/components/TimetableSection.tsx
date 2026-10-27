@@ -59,8 +59,8 @@ export default function TimetableSection({
             <span className="text-[#007fb8]">Select Your Institute</span>
           </h2>
           <p className="mt-2.5 text-[14px] leading-[1.65] font-medium text-[#60768a] max-sm:text-[12px]">
-            English Medium O/L Commerce physical classes conducted across 8
-            premier educational institutes with <strong>Evon Aravinda</strong>.
+            English Medium O/L Commerce classes conducted across 8 premier educational institutes &amp; dedicated{" "}
+            <strong>Islandwide Online Paper Classes</strong> with <strong>Evon Aravinda</strong>.
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export default function TimetableSection({
                   : "bg-white text-[#254967] border border-[#cddce5] hover:border-[#007fb8] hover:text-[#007fb8]"
               }`}
             >
-              All Institutes (8)
+              All Classes ({institutesData.length})
             </button>
 
             {institutesData.map((inst) => {
@@ -118,7 +118,11 @@ export default function TimetableSection({
             return (
               <div
                 key={inst.id}
-                className="group relative flex min-w-0 flex-col justify-between rounded-3xl border border-[#cddce5] bg-white p-6 shadow-[0_6px_25px_-6px_rgba(16,44,69,0.06)] transition-all hover:border-[#007fb8]/70 hover:shadow-[0_16px_36px_-8px_rgba(0,127,184,0.18)] max-sm:rounded-2xl max-sm:p-3"
+                className={`group relative flex min-w-0 flex-col justify-between rounded-3xl p-6 transition-all max-sm:rounded-2xl max-sm:p-3 ${
+                  inst.isOnline
+                    ? "border-2 border-[#007fb8] bg-[linear-gradient(180deg,#ffffff_0%,#f0f9ff_100%)] shadow-[0_10px_30px_-8px_rgba(0,127,184,0.18)] hover:border-[#0ac9e8] hover:shadow-[0_18px_40px_-8px_rgba(0,127,184,0.28)]"
+                    : "border border-[#cddce5] bg-white shadow-[0_6px_25px_-6px_rgba(16,44,69,0.06)] hover:border-[#007fb8]/70 hover:shadow-[0_16px_36px_-8px_rgba(0,127,184,0.18)]"
+                }`}
               >
                 <div>
                   {/* Card Header */}
@@ -131,10 +135,17 @@ export default function TimetableSection({
                         {inst.location}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 rounded-full bg-[#e0f2fe] px-2 py-0.5 text-[9.5px] font-bold text-[#0284c7] max-sm:hidden">
-                      <MapPin size={11} />
-                      Physical
-                    </div>
+                    {inst.isOnline ? (
+                      <div className="flex items-center gap-1.5 rounded-full border border-[#0284c7]/40 bg-[#e0f2fe] px-2.5 py-0.5 text-[10px] font-extrabold text-[#0284c7] shadow-xs">
+                        <span className="size-2 rounded-full bg-[#0284c7] animate-pulse" />
+                        Online Zoom
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 rounded-full bg-[#e0f2fe] px-2 py-0.5 text-[9.5px] font-bold text-[#0284c7] max-sm:hidden">
+                        <MapPin size={11} />
+                        Physical
+                      </div>
+                    )}
                   </div>
 
                   {/* Class Timetable Rows */}

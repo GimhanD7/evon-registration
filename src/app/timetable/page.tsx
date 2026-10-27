@@ -327,10 +327,17 @@ export default function TimetablePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 rounded-full border border-[#38d995]/50 bg-[#e8f7f2] px-3 py-1 text-[11px] font-bold text-[#159366]">
-                          <span className="size-2 rounded-full bg-[#38d995] animate-pulse" />
-                          Physical Hall
-                        </div>
+                        {inst.isOnline ? (
+                          <div className="flex items-center gap-1.5 rounded-full border border-[#0284c7]/50 bg-[#e0f2fe] px-3.5 py-1 text-[11px] font-black text-[#0369a1] shadow-xs">
+                            <span className="size-2 rounded-full bg-[#0284c7] animate-pulse" />
+                            Online Zoom &amp; LMS
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 rounded-full border border-[#38d995]/50 bg-[#e8f7f2] px-3 py-1 text-[11px] font-bold text-[#159366]">
+                            <span className="size-2 rounded-full bg-[#38d995] animate-pulse" />
+                            Physical Hall
+                          </div>
+                        )}
                       </div>
 
                       {/* Timetable Rows by Stream */}
