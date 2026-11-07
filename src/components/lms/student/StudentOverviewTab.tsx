@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import {
   FileText,
@@ -22,9 +22,22 @@ import {
   Printer,
   ChevronRight,
   ShieldCheck,
+  RefreshCw,
+  Database,
+  Server,
+  Activity,
+  Check,
 } from "lucide-react";
 import { LMSPaper, LMSEvaluation, LMSQuiz, LMSUser } from "@/data/lmsData";
-import { getLmsUsers, getStudentExamResults } from "@/lib/lmsStore";
+import {
+  getLmsUsers,
+  getStudentExamResults,
+  checkBackendStatus,
+  syncPapersFromBackend,
+  syncQuizzesFromBackend,
+  syncEvaluationsFromBackend,
+  syncUsersFromBackend,
+} from "@/lib/lmsStore";
 import { calculateLeaderboard, StudentLeaderboardEntry } from "@/lib/leaderboardService";
 import { printStudentTranscriptPdf } from "@/lib/pdfPrintService";
 
@@ -43,6 +56,60 @@ export default function StudentOverviewTab({
   evaluations,
   onSelectTab,
 }: StudentOverviewTabProps) {
+  // 0. Live Backend MySQL Database Connection State
+  const [backendStatus, setBackendStatus] = useState<{
+    online: boolean;
+    database: boolean;
+    databaseName?: string;
+    environment?: "local" | "hosting";
+    message: string;
+    stats?: {
+      total_users: number;
+      total_papers: number;
+      total_results?: number;
+      total_quizzes?: number;
+      total_evaluations?: number;
+    };
+  } | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>("Just now");
+
+  useEffect(() => {
+    let mounted = true;
+    checkBackendStatus().then((st) => {
+      if (mounted) {
+        setBackendStatus(st);
+        setLastSyncTime(
+          new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        );
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleSyncWithDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      const [st] = await Promise.all([
+        checkBackendStatus(),
+        syncPapersFromBackend(),
+        syncQuizzesFromBackend(),
+        syncEvaluationsFromBackend(),
+        syncUsersFromBackend(),
+      ]);
+      setBackendStatus(st);
+      setLastSyncTime(
+        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      );
+    } catch (e) {
+      console.warn("Manual sync error:", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // 1. Fetch all students to compute live leaderboard analytics
   const allUsers = useMemo(() => getLmsUsers(), []);
 
@@ -258,6 +325,75 @@ export default function StudentOverviewTab({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 1.5 LIVE BACKEND & DATABASE SYNCHRONIZATION STATUS BAR   */}
+      {/* ======================================================== */}
+      <div className="rounded-2xl border border-[#cddce5] bg-white p-3 sm:p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+          {/* Connection Pill */}
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-xl bg-[#e0f2fe] text-[#007fb8] shrink-0">
+              <Database size={15} />
+            </span>
+            <div>
+              <div className="flex items-center gap-1.5 font-black text-[#102c45]">
+                <span>MySQL Database:</span>
+                {backendStatus?.database ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f7f2] px-2 py-0.5 text-[11px] font-black text-[#159366]">
+                    <span className="size-2 rounded-full bg-[#159366] animate-pulse" />
+                    CONNECTED ({backendStatus.databaseName || "evon_lms"})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fff7ed] px-2 py-0.5 text-[11px] font-bold text-[#ea580c]">
+                    <span className="size-2 rounded-full bg-[#ea580c]" />
+                    STANDBY (Local Cache)
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-[#60768a]">
+                Environment:{" "}
+                <b className="text-[#102c45]">
+                  {backendStatus?.environment === "hosting"
+                    ? "Live Hosting (technohub.kasunwalakumbura.com)"
+                    : "Local Development XAMPP"}
+                </b>
+              </div>
+            </div>
+          </div>
+
+          <span className="h-6 w-px bg-[#cddce5] hidden lg:inline-block" />
+
+          {/* Database Live Stats Pills */}
+          <div className="hidden lg:flex items-center gap-2 text-[11px] font-bold text-[#60768a]">
+            <span className="rounded-lg bg-[#edf2f3] px-2.5 py-1 text-[#102c45]">
+              📚 <b className="text-[#007fb8]">{backendStatus?.stats?.total_papers ?? totalPapersCount}</b> Papers in DB
+            </span>
+            <span className="rounded-lg bg-[#edf2f3] px-2.5 py-1 text-[#102c45]">
+              📝 <b className="text-[#0ac9e8]">{backendStatus?.stats?.total_quizzes ?? quizzes.length}</b> Quizzes in DB
+            </span>
+            <span className="rounded-lg bg-[#edf2f3] px-2.5 py-1 text-[#159366]">
+              👥 <b className="text-[#159366]">{backendStatus?.stats?.total_users ?? allUsers.length}</b> Students in DB
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Manual Sync Button */}
+        <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t border-[#cddce5]/40 md:border-t-0">
+          <span className="text-[11px] text-[#60768a]">
+            Synced: <b className="text-[#102c45]">{lastSyncTime}</b>
+          </span>
+          <button
+            type="button"
+            onClick={handleSyncWithDatabase}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#007fb8]/30 bg-[#e0f2fe]/80 hover:bg-[#e0f2fe] px-3.5 py-1.5 text-xs font-black text-[#007fb8] transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs"
+          >
+            <RefreshCw size={13} className={isSyncing ? "animate-spin text-[#007fb8]" : ""} />
+            <span>{isSyncing ? "Syncing MySQL..." : "Sync with Database"}</span>
+          </button>
         </div>
       </div>
 

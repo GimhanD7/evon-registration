@@ -20,6 +20,7 @@ import {
   saveQuizScore,
   getLmsEvaluations,
   syncEvaluationsFromBackend,
+  syncUsersFromBackend,
   updateLmsUser,
 } from "@/lib/lmsStore";
 
@@ -86,6 +87,7 @@ export default function StudentLmsPage() {
       syncPapersFromBackend(),
       syncQuizzesFromBackend(),
       syncEvaluationsFromBackend(),
+      syncUsersFromBackend(),
     ]).then(() => {
       if (active) refresh();
     });
@@ -93,11 +95,13 @@ export default function StudentLmsPage() {
     window.addEventListener("lms_papers_change", refresh);
     window.addEventListener("lms_quizzes_change", refresh);
     window.addEventListener("lms_evaluations_change", refresh);
+    window.addEventListener("lms_users_change", refresh);
     return () => {
       active = false;
       window.removeEventListener("lms_papers_change", refresh);
       window.removeEventListener("lms_quizzes_change", refresh);
       window.removeEventListener("lms_evaluations_change", refresh);
+      window.removeEventListener("lms_users_change", refresh);
     };
   }, [currentUserId]);
 
