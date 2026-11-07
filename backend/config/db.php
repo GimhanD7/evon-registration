@@ -93,6 +93,7 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => true,
+        PDO::ATTR_TIMEOUT => 2,
     ]);
 } catch (PDOException $e) {
     // If database does not exist, automatically create it and run schema.sql
@@ -101,6 +102,7 @@ try {
             $rootPdo = new PDO("mysql:host={$db_host};port={$db_port};charset=utf8mb4", $db_user, $db_pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+                PDO::ATTR_TIMEOUT => 2,
             ]);
             $schemaFile = __DIR__ . '/../database/schema.sql';
             if (file_exists($schemaFile)) {
@@ -109,6 +111,7 @@ try {
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => true,
+                    PDO::ATTR_TIMEOUT => 2,
                 ]);
             }
         } catch (Exception $inner) {
