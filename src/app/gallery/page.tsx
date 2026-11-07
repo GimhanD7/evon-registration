@@ -12,7 +12,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Filter,
   ArrowUpDown,
   BookOpen,
   Award,
@@ -21,7 +20,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   MapPin,
-  CheckCircle2,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -115,10 +113,11 @@ export default function GalleryPage() {
   }, [selectedPhotoIndex, showNext, showPrev]);
 
   return (
-    <main className="min-h-screen bg-[#f8fafc]">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f8fafc]">
       {/* Navigation Header */}
       <Header
         onOpenJoin={() => setIsJoinOpen(true)}
+        onOpenLogin={() => setIsLoginOpen(true)}
       />
 
       {/* Modern Themed Hero Header */}
@@ -385,11 +384,11 @@ export default function GalleryPage() {
       {/* Filter, Search & Controls Section */}
       <section
         id="gallery-grid"
-        className="sticky top-[84px] max-md:top-0 z-30 border-b border-[#cbd5e1] bg-white/95 px-8 py-3.5 backdrop-blur-md shadow-xs max-sm:px-4"
+        className="sticky top-[84px] max-md:top-[57px] z-20 border-b border-[#cbd5e1] bg-white/95 px-8 py-3.5 backdrop-blur-md shadow-xs max-sm:px-4"
       >
         <div className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-3.5">
           {/* Category Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar sm:flex-wrap max-sm:w-full">
             {[
               { id: "all", label: "All Photos", count: galleryPhotos.length, icon: Layers },
               {
@@ -418,7 +417,7 @@ export default function GalleryPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setSelectedCategory(tab.id as typeof selectedCategory)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-extrabold tracking-wide transition-all cursor-pointer ${
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[12px] font-extrabold tracking-wide transition-all active:scale-95 cursor-pointer ${
                     isActive
                       ? "bg-[#102c45] text-white shadow-md shadow-[#102c45]/25 scale-102"
                       : "bg-[#f1f5f9] text-[#60768a] hover:bg-[#e2e8f0] hover:text-[#102c45]"
@@ -451,7 +450,7 @@ export default function GalleryPage() {
                 placeholder="Search by topic, tag, or institute..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[240px] max-sm:w-full rounded-full border border-[#cbd5e1] bg-white py-2 pr-8 pl-9 text-[12px] font-semibold text-[#102c45] placeholder-[#94a3b8] focus:border-[#007fb8] focus:outline-none focus:ring-2 focus:ring-[#007fb8]/20 transition-all"
+                className="w-[240px] max-sm:w-full rounded-full border border-[#cbd5e1] bg-white py-2 pr-8 pl-9 text-[12px] font-semibold text-[#102c45] placeholder-[#94a3b8] focus:border-[#007fb8] focus:outline-none focus:ring-2 focus:ring-[#007fb8]/20 transition-all max-sm:text-base"
               />
               {searchQuery && (
                 <button
@@ -471,7 +470,7 @@ export default function GalleryPage() {
               onClick={() =>
                 setSortOrder(sortOrder === "latest" ? "oldest" : "latest")
               }
-              className="inline-flex items-center gap-2 rounded-full border border-[#cbd5e1] bg-white px-4 py-2 text-[12px] font-bold text-[#102c45] shadow-xs transition-colors hover:border-[#007fb8] hover:text-[#007fb8] cursor-pointer"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#cbd5e1] bg-white px-4 py-2 text-[12px] font-bold text-[#102c45] shadow-xs transition-colors hover:border-[#007fb8] hover:text-[#007fb8] active:scale-95 cursor-pointer max-sm:flex-1 max-sm:justify-center"
             >
               <ArrowUpDown size={13} className="text-[#007fb8]" />
               <span>
@@ -572,7 +571,7 @@ export default function GalleryPage() {
       {/* Lightbox Modal */}
       {selectedPhotoIndex !== null && (
         <div
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/92 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/92 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out] pb-safe"
           onClick={closeLightbox}
           role="dialog"
           aria-modal="true"
@@ -582,23 +581,23 @@ export default function GalleryPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top Bar */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-[#007fb8] px-3 py-0.5 text-[11px] font-extrabold text-white uppercase tracking-wider">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 max-sm:px-4 max-sm:py-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="shrink-0 rounded-full bg-[#007fb8] px-3 py-0.5 text-[11px] font-extrabold text-white uppercase tracking-wider">
                   {galleryPhotos[selectedPhotoIndex].tag}
                 </span>
-                <span className="text-[14px] font-bold text-white/95 truncate max-sm:max-w-[180px]">
+                <span className="text-[14px] font-bold text-white/95 truncate max-sm:max-w-[170px]">
                   {galleryPhotos[selectedPhotoIndex].title}
                 </span>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[12px] font-bold text-white/70">
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="text-[12px] font-bold text-white/70 max-sm:hidden">
                   {selectedPhotoIndex + 1} of {galleryPhotos.length}
                 </span>
                 <button
                   type="button"
                   onClick={closeLightbox}
-                  className="flex size-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
+                  className="flex size-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95 cursor-pointer"
                   aria-label="Close photo preview"
                 >
                   <X size={20} />
@@ -607,7 +606,7 @@ export default function GalleryPage() {
             </div>
 
             {/* Photo View */}
-            <div className="relative h-[70vh] max-sm:h-[50vh] w-full bg-black/60">
+            <div className="relative h-[70vh] max-sm:h-[55vh] w-full bg-black/60">
               <Image
                 src={galleryPhotos[selectedPhotoIndex].src}
                 alt={galleryPhotos[selectedPhotoIndex].alt}
@@ -616,11 +615,11 @@ export default function GalleryPage() {
                 className="object-contain"
               />
 
-              {/* Prev / Next Controls */}
+              {/* Prev / Next Controls with touch-friendly targets */}
               <button
                 type="button"
                 onClick={showPrev}
-                className="absolute left-4 top-1/2 -translate-y-1/2 flex size-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black cursor-pointer shadow-lg"
+                className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 flex size-11 sm:size-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black active:scale-90 cursor-pointer shadow-lg"
                 aria-label="Previous photo"
               >
                 <ChevronLeft size={24} />
@@ -628,7 +627,7 @@ export default function GalleryPage() {
               <button
                 type="button"
                 onClick={showNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 flex size-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black cursor-pointer shadow-lg"
+                className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 flex size-11 sm:size-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black active:scale-90 cursor-pointer shadow-lg"
                 aria-label="Next photo"
               >
                 <ChevronRight size={24} />
@@ -636,12 +635,12 @@ export default function GalleryPage() {
             </div>
 
             {/* Photo Caption Footer */}
-            <div className="border-t border-white/10 bg-[#0f172a] px-6 py-4 flex items-center justify-between gap-4">
-              <p className="text-[13px] leading-relaxed text-white/80 truncate">
+            <div className="border-t border-white/10 bg-[#0f172a] px-6 py-3.5 max-sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <p className="text-[13px] leading-relaxed text-white/80 line-clamp-2 sm:line-clamp-1">
                 {galleryPhotos[selectedPhotoIndex].description}
               </p>
-              <div className="shrink-0 text-[11px] font-semibold text-[#0ac9e8]">
-                Keyboard &larr; &rarr; to navigate • Esc to close
+              <div className="shrink-0 text-[11px] font-semibold text-[#0ac9e8] max-sm:text-[10px]">
+                <span className="sm:hidden">{selectedPhotoIndex + 1}/{galleryPhotos.length} • </span>Keyboard &larr; &rarr; to navigate • Esc to close
               </div>
             </div>
           </div>

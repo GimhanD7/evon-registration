@@ -128,7 +128,7 @@ export default function ClassGallery() {
         <div className="mt-12 flex flex-col items-center justify-center gap-3">
           <Link
             href="/gallery"
-            className="group inline-flex items-center gap-3 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-8 py-4 text-[14px] font-black text-white shadow-lg shadow-[#007fb8]/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#007fb8]/35 active:scale-95"
+            className="group inline-flex items-center gap-3 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-8 py-3.5 text-[14px] font-black text-white shadow-lg shadow-[#007fb8]/25 transition-all duration-300 hover:scale-102 hover:shadow-xl hover:shadow-[#007fb8]/35 active:scale-95 max-sm:w-full max-sm:justify-between max-sm:px-5 max-sm:text-[13px]"
           >
             <Layers size={18} className="text-[#38d995]" />
             <span>View All Classroom Photos ({galleryPhotos.length}+)</span>

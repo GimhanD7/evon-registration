@@ -65,39 +65,39 @@ export default function FeaturePillars({ onOpenJoin }: FeaturePillarsProps) {
           </p>
         </div>
 
-        {/* 4 Cards Grid - Exactly 2 Cards Per Row on All Screens (Desktop & Mobile) */}
-        <div className="mb-8 grid grid-cols-2 gap-5 max-sm:gap-2.5">
+        {/* 4 Cards Grid - Responsive Grid on Mobile */}
+        <div className="mb-8 grid grid-cols-2 gap-5 max-[380px]:grid-cols-1 max-sm:gap-3">
           {pillars.map((item, idx) => (
             <div
               key={idx}
-              className="flex min-w-0 flex-col justify-between rounded-3xl border border-[#cddce5] bg-white p-6 shadow-[0_10px_30px_-10px_rgba(16,44,69,0.06)] transition-all hover:-translate-y-1 hover:border-[#007fb8] hover:shadow-[0_20px_40px_-12px_rgba(0,127,184,0.18)] max-sm:rounded-2xl max-sm:p-3"
+              className="flex min-w-0 flex-col justify-between rounded-3xl border border-[#cddce5] bg-white p-6 shadow-[0_10px_30px_-10px_rgba(16,44,69,0.06)] transition-all hover:-translate-y-1 hover:border-[#007fb8] hover:shadow-[0_20px_40px_-12px_rgba(0,127,184,0.18)] max-sm:rounded-2xl max-sm:p-3.5"
             >
               <div>
                 {/* Header: Number + Badge */}
-                <div className="mb-4 flex items-center justify-between gap-1 max-sm:mb-2">
+                <div className="mb-3.5 flex items-center justify-between gap-1 max-sm:mb-2">
                   <span className="font-mono text-[22px] font-black text-[#cddce5] tabular-nums max-sm:text-[16px]">
                     {item.num}
                   </span>
-                  <span className="truncate rounded-md border border-[#cddce5] bg-[#edf2f3] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[0.5px] text-[#254967] uppercase max-sm:text-[8px] max-sm:px-1 max-sm:py-0.2">
+                  <span className="truncate rounded-md border border-[#cddce5] bg-[#edf2f3] px-2 py-0.5 text-[9.5px] font-extrabold tracking-[0.5px] text-[#254967] uppercase max-sm:text-[8px] max-sm:px-1.5 max-sm:py-0.2">
                     {item.badge}
                   </span>
                 </div>
 
                 {/* Icon Container */}
-                <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] shadow-xs max-sm:mb-2 max-sm:size-8 max-sm:rounded-xl [&>svg]:max-sm:size-4">
+                <div className="mb-3.5 flex size-12 items-center justify-center rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] shadow-xs max-sm:mb-2 max-sm:size-8 max-sm:rounded-xl [&>svg]:max-sm:size-4">
                   {item.icon}
                 </div>
 
                 {/* Title & Subtitle */}
-                <h3 className="mb-1 text-[18px] font-black tracking-tight text-[#102c45] max-sm:text-[13.5px] max-sm:leading-tight">
+                <h3 className="mb-1 text-[17px] font-black tracking-tight text-[#102c45] max-sm:text-[13px] max-sm:leading-tight">
                   {item.title}
                 </h3>
-                <div className="mb-2 text-[12px] font-bold text-[#007fb8] max-sm:mb-1.5 max-sm:text-[10px] max-sm:leading-tight">
+                <div className="mb-2 text-[12px] font-extrabold text-[#007fb8] max-sm:mb-1.5 max-sm:text-[9.5px] max-sm:leading-tight">
                   {item.subtitle}
                 </div>
 
                 {/* Description */}
-                <p className="text-[13px] leading-[1.55] text-[#60768a] max-sm:text-[10.5px] max-sm:leading-[1.4]">
+                <p className="text-[13px] leading-[1.6] text-[#60768a] max-sm:text-[11px] max-sm:leading-[1.45]">
                   {item.desc}
                 </p>
               </div>

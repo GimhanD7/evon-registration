@@ -1,9 +1,21 @@
 import type { NextConfig } from "next";
 
+const backendBaseUrl = (
+  process.env.BACKEND_APACHE_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "http://localhost/Evon-registration/backend"
+).replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  devIndicators: false,
+  async rewrites() {
+    return [
+      {
+        source: "/backend/:path*",
+        destination: `${backendBaseUrl}/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

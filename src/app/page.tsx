@@ -35,10 +35,11 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden">
       {/* Navigation Header */}
       <Header
         onOpenJoin={() => handleOpenJoin("2027 O/L Commerce Foundation Batch")}
+        onOpenLogin={() => setIsLoginOpen(true)}
       />
 
       {/* Hero Section matching design image */}
@@ -79,6 +80,10 @@ export default function HomePage() {
       <StudentLoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
+        onOpenJoin={() => {
+          setIsLoginOpen(false);
+          setIsJoinOpen(true);
+        }}
       />
 
       <JoinModal
@@ -88,6 +93,10 @@ export default function HomePage() {
         onClose={() => {
           setIsJoinOpen(false);
           setSelectedCourse(undefined);
+        }}
+        onOpenLogin={() => {
+          setIsJoinOpen(false);
+          setIsLoginOpen(true);
         }}
       />
 

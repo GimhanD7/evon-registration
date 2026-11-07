@@ -10,7 +10,6 @@ import {
   MessageSquareCheck,
   Check,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 
 interface LearningPlatformPreviewProps {

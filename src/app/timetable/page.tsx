@@ -23,6 +23,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JoinModal from "@/components/JoinModal";
 import { institutesData } from "@/data/timetableData";
+import { printTimetablePdf } from "@/lib/pdfPrintService";
 
 export default function TimetablePage() {
   const [selectedInstituteId, setSelectedInstituteId] = useState<string>("all");
@@ -38,9 +39,7 @@ export default function TimetablePage() {
   };
 
   const handlePrint = () => {
-    if (typeof window !== "undefined") {
-      window.print();
-    }
+    printTimetablePdf();
   };
 
   const filteredInstitutes = institutesData.filter((inst) => {
@@ -57,7 +56,7 @@ export default function TimetablePage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#edf2f3] text-[#102c45]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#edf2f3] text-[#102c45]">
       {/* Header */}
       <Header
         onOpenJoin={() => handleOpenJoin("2027 O/L Commerce Foundation Batch")}
@@ -213,13 +212,13 @@ export default function TimetablePage() {
 
               {/* Institute Selector Pills */}
               <div className="border-t border-[#edf2f7] pt-4">
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar sm:flex-wrap">
                   <button
                     type="button"
                     onClick={() => setSelectedInstituteId("all")}
-                    className={`rounded-full px-4.5 py-2 text-[12px] font-extrabold transition-all ${
+                    className={`shrink-0 rounded-full px-4 py-2 text-[12px] font-extrabold transition-all active:scale-95 cursor-pointer ${
                       selectedInstituteId === "all"
-                        ? "bg-[#102c45] text-white shadow-md shadow-[#102c45]/25 scale-105"
+                        ? "bg-[#102c45] text-white shadow-md shadow-[#102c45]/25 scale-102"
                         : "border border-[#cddce5] bg-[#edf2f3] text-[#254967] hover:border-[#007fb8] hover:bg-white"
                     }`}
                   >
@@ -233,9 +232,9 @@ export default function TimetablePage() {
                         key={inst.id}
                         type="button"
                         onClick={() => setSelectedInstituteId(inst.id)}
-                        className={`group flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold transition-all ${
+                        className={`group shrink-0 flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold transition-all active:scale-95 cursor-pointer ${
                           isActive
-                            ? "bg-[linear-gradient(135deg,#007fb8_0%,#0096cc_100%)] text-white shadow-md shadow-[#007fb8]/30 scale-105 border-transparent"
+                            ? "bg-[linear-gradient(135deg,#007fb8_0%,#0096cc_100%)] text-white shadow-md shadow-[#007fb8]/30 scale-102 border-transparent"
                             : "border border-[#cddce5] bg-[#edf2f3] text-[#102c45] hover:border-[#007fb8] hover:bg-white"
                         }`}
                       >

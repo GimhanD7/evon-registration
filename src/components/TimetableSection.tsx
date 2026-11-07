@@ -6,7 +6,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  ArrowRight,
   ArrowUpRight,
   Sparkles,
 } from "lucide-react";
@@ -32,7 +31,7 @@ export default function TimetableSection({
     <section
       id="timetable"
       aria-labelledby="timetable-heading"
-      className="relative isolate bg-[#edf2f3] py-16 max-lg:py-12 max-sm:py-8"
+      className="relative isolate overflow-hidden bg-[#edf2f3] py-16 max-lg:py-12 max-sm:py-8"
     >
       {/* Ambient background glows matching Hero */}
       <div
@@ -66,17 +65,17 @@ export default function TimetableSection({
 
         {/* Institute Selector Pills */}
         <div className="mt-6 max-sm:mt-4">
-          <div className="flex flex-wrap items-center justify-center gap-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar sm:flex-wrap sm:justify-center">
             <button
               type="button"
               onClick={() => setSelectedInstituteId("all")}
-              className={`rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all max-sm:px-2.5 max-sm:py-1 max-sm:text-[10px] ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-extrabold transition-all active:scale-95 cursor-pointer max-sm:px-3 max-sm:py-1 max-sm:text-[10.5px] ${
                 selectedInstituteId === "all"
-                  ? "bg-[#102c45] text-white shadow-md shadow-[#102c45]/25 scale-105"
+                  ? "bg-[#102c45] text-white shadow-md shadow-[#102c45]/25 scale-102"
                   : "bg-white text-[#254967] border border-[#cddce5] hover:border-[#007fb8] hover:text-[#007fb8]"
               }`}
             >
-              All Classes ({institutesData.length})
+              All Institutes ({institutesData.length})
             </button>
 
             {institutesData.map((inst) => {
@@ -86,9 +85,9 @@ export default function TimetableSection({
                   key={inst.id}
                   type="button"
                   onClick={() => setSelectedInstituteId(inst.id)}
-                  className={`group flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all max-sm:px-2 max-sm:py-1 max-sm:text-[10px] ${
+                  className={`group shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all active:scale-95 cursor-pointer max-sm:px-2.5 max-sm:py-1 max-sm:text-[10px] ${
                     isActive
-                      ? "bg-[#007fb8] text-white shadow-md shadow-[#007fb8]/30 scale-105"
+                      ? "bg-[#007fb8] text-white shadow-md shadow-[#007fb8]/30 scale-102"
                       : "bg-white text-[#102c45] border border-[#cddce5] hover:border-[#007fb8] hover:bg-[#edf7fd]"
                   }`}
                 >
@@ -108,8 +107,8 @@ export default function TimetableSection({
           </div>
         </div>
 
-        {/* Timetable Cards Grid - Exactly 2 Cards Per Row on Mobile and Desktop */}
-        <div className="mt-8 grid grid-cols-2 gap-5 max-sm:gap-2.5">
+        {/* Timetable Cards Grid - Responsive Grid on Mobile */}
+        <div className="mt-8 grid grid-cols-2 gap-5 max-md:grid-cols-1 max-sm:gap-3.5">
           {filteredInstitutes.map((inst) => {
             const grade10Slots = inst.slots.filter((s) => s.grade === "Grade 10");
             const grade11Slots = inst.slots.filter((s) => s.grade === "Grade 11");

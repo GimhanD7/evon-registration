@@ -8,8 +8,6 @@ import {
   MapPin,
   Clock,
   ArrowUp,
-  Award,
-  BookOpen,
   MessageCircle,
   Sparkles,
   Calendar,
@@ -31,7 +29,7 @@ export default function Footer({ onOpenLogin, onOpenJoin }: FooterProps) {
 
   return (
     <footer
-      className="relative overflow-hidden bg-[#0c2944] pt-16 pb-8 max-md:pb-28 text-[#94a3b8]"
+      className="relative overflow-hidden bg-[#0c2944] pt-16 pb-8 max-md:pb-[max(120px,calc(100px+env(safe-area-inset-bottom)))] text-[#94a3b8]"
       id="contact"
     >
       {/* Ambient background glows matching brand theme */}

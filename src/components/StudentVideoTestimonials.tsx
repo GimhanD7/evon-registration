@@ -9,14 +9,11 @@ import {
   Clock,
   Sparkles,
   X,
-  Volume2,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
   ChevronUp,
   Star,
-  BookOpen,
-  Layers,
   MapPin,
   ArrowRight,
 } from "lucide-react";
@@ -475,8 +472,8 @@ export default function StudentVideoTestimonials({
             </div>
 
             {/* Video Player Display */}
-            <div className="p-6 max-sm:p-4 max-h-[calc(94vh-80px)] overflow-y-auto">
-              <div className="relative h-[420px] max-sm:h-[300px] w-full overflow-hidden rounded-2xl bg-black shadow-inner flex items-center justify-center">
+            <div className="p-5 max-sm:p-3.5 max-h-[calc(94vh-75px)] overflow-y-auto">
+              <div className="relative aspect-video max-h-[50vh] w-full overflow-hidden rounded-2xl bg-black shadow-inner flex items-center justify-center">
                 <video
                   key={activeStory.id}
                   src={activeStory.videoUrl}
@@ -484,14 +481,14 @@ export default function StudentVideoTestimonials({
                   autoPlay
                   playsInline
                   preload="auto"
-                  className="h-full w-full object-contain bg-black"
+                  className="size-full object-contain bg-black"
                 />
 
                 {/* Prev / Next Video buttons overlay */}
                 <button
                   type="button"
                   onClick={showPrevVideo}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black cursor-pointer shadow-lg"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black active:scale-95 cursor-pointer shadow-lg z-10"
                   aria-label="Previous video"
                   title="Previous video"
                 >
@@ -500,7 +497,7 @@ export default function StudentVideoTestimonials({
                 <button
                   type="button"
                   onClick={showNextVideo}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black cursor-pointer shadow-lg"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-all hover:bg-white hover:text-black active:scale-95 cursor-pointer shadow-lg z-10"
                   aria-label="Next video"
                   title="Next video"
                 >

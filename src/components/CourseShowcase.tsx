@@ -4,11 +4,8 @@ import React, { useState } from "react";
 import { twMerge } from "tailwind-merge";
 import {
   Calendar,
-  Clock,
-  BookOpen,
   CheckCircle2,
   Video,
-  FileCheck,
   ChevronRight,
   Sparkles,
 } from "lucide-react";

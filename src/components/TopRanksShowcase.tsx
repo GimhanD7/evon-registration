@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Trophy, Star, GraduationCap, Quote, ArrowUpRight, Sparkles } from "lucide-react";
+import { Trophy, Star, Quote, ArrowUpRight } from "lucide-react";
 
 export default function TopRanksShowcase() {
   const rankers = [
@@ -62,8 +62,8 @@ export default function TopRanksShowcase() {
           </p>
         </div>
 
-        {/* 2 Cards per Row Grid on Mobile & Desktop */}
-        <div className="grid grid-cols-2 gap-5 max-sm:gap-2.5">
+        {/* Cards Grid - Responsive on Mobile & Desktop */}
+        <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-5 max-sm:gap-3">
           {rankers.map((r, idx) => (
             <div
               key={idx}
