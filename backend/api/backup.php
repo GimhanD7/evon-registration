@@ -67,8 +67,10 @@ if ($method === 'POST') {
 
         $ch = curl_init($testUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         $testResp = curl_exec($ch);
@@ -77,6 +79,17 @@ if ($method === 'POST') {
         curl_close($ch);
 
         $parsed = json_decode($testResp, true);
+
+        // Check if Google redirected to a login screen (meaning 'Who has access' was set to 'Only myself')
+        if (strpos((string)$testResp, 'accounts.google.com') !== false || strpos((string)$testResp, 'ServiceLogin') !== false) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => "Access denied by Google: In Google Apps Script, click 'Deploy' > 'Manage deployments', click the Edit pencil, and change 'Who has access' from 'Only myself' to 'Anyone'.",
+                'http_code' => $testHttp
+            ]);
+            exit();
+        }
+
         $isOk = (!$testErr && $testHttp >= 200 && $testHttp < 400);
 
         echo json_encode([
@@ -189,8 +202,10 @@ if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 25);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_AUTOREFERER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 

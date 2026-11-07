@@ -230,11 +230,13 @@ export function useCurrentLmsUser(): { user: LMSUser | null; isLoaded: boolean }
  */
 export async function callBackendApi(endpoint: string, options: RequestInit = {}): Promise<Response | null> {
   const candidateUrls = getApiCandidateUrls(endpoint);
+  const isLongRunning = endpoint.includes("backup.php") || endpoint.includes("seed.php");
+  const timeoutMs = isLongRunning ? 25000 : 4000;
 
   for (const url of candidateUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const res = await fetch(url, {
         ...options,

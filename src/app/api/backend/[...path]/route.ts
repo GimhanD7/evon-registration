@@ -149,9 +149,12 @@ async function handleBackendRequest(
     ).replace(/\/+$/, "");
     const apacheUrl = `${backendBase}/api/${normalizedScript}${urlObj.search}`;
 
+    const isLongRunningScript = normalizedScript === "backup.php" || normalizedScript === "seed.php";
+    const apacheTimeout = isLongRunningScript ? 30000 : 2000;
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const timeoutId = setTimeout(() => controller.abort(), apacheTimeout);
 
       const apacheRes = await fetch(apacheUrl, {
         method,
@@ -216,13 +219,14 @@ async function handleBackendRequest(
           let stderr = "";
           let settled = false;
 
+          const cliTimeout = isLongRunningScript ? 30000 : 3500;
           const timer = setTimeout(() => {
             if (!settled) {
               settled = true;
               try { phpProcess.kill(); } catch {}
               resolve(null);
             }
-          }, 3500);
+          }, cliTimeout);
 
           if (method === "POST" && bodyData) {
             try { phpProcess.stdin.write(bodyData); } catch {}
@@ -290,8 +294,9 @@ async function handleBackendRequest(
     // 4. Remote hosting fallback (https://technohub.kasunwalakumbura.com)
     try {
       const remoteUrl = `https://technohub.kasunwalakumbura.com/backend/api/${normalizedScript}${urlObj.search}`;
+      const remoteTimeout = isLongRunningScript ? 30000 : 3500;
       const remoteController = new AbortController();
-      const remoteTimer = setTimeout(() => remoteController.abort(), 3000);
+      const remoteTimer = setTimeout(() => remoteController.abort(), remoteTimeout);
 
       const remoteRes = await fetch(remoteUrl, {
         method,
