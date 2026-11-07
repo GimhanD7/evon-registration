@@ -92,6 +92,8 @@ export default function AdminLmsPage() {
   const [backendStatus, setBackendStatus] = useState<{
     online: boolean;
     database: boolean;
+    databaseName?: string;
+    environment?: "local" | "hosting";
     message: string;
   } | null>(null);
   const [isCheckingBackend, setIsCheckingBackend] = useState(false);

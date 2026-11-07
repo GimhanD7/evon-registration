@@ -14,6 +14,8 @@ interface AdminOverviewTabProps {
   backendStatus: {
     online: boolean;
     database: boolean;
+    databaseName?: string;
+    environment?: "local" | "hosting";
     message: string;
   } | null;
   isCheckingBackend: boolean;
@@ -187,12 +189,18 @@ export default function AdminOverviewTab({
                     backendStatus?.online ? "bg-[#159366] animate-pulse" : "bg-amber-500"
                   }`}
                 />
-                {backendStatus?.online ? "ONLINE" : "STANDBY (Start XAMPP)"}
+                {backendStatus?.online
+                  ? backendStatus.environment === "hosting"
+                    ? "ONLINE (Live Hosting)"
+                    : "ONLINE (Local XAMPP)"
+                  : "STANDBY (Start XAMPP)"}
               </span>
             </div>
 
             <div className="flex items-center justify-between rounded-2xl bg-[#edf2f3]/70 px-4 py-3 border border-[#cddce5]/60">
-              <span className="text-xs sm:text-sm font-bold text-[#102c45]">MySQL (evon_lms)</span>
+              <span className="text-xs sm:text-sm font-bold text-[#102c45]">
+                MySQL ({backendStatus?.databaseName || "evon_lms"})
+              </span>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-black ${
                   backendStatus?.database ? "bg-[#e8f7f2] text-[#159366]" : "bg-amber-100 text-amber-800"
@@ -203,7 +211,11 @@ export default function AdminOverviewTab({
                     backendStatus?.database ? "bg-[#159366] animate-pulse" : "bg-amber-500"
                   }`}
                 />
-                {backendStatus?.database ? "CONNECTED" : "OFFLINE (Start MySQL in XAMPP)"}
+                {backendStatus?.database
+                  ? backendStatus.environment === "hosting"
+                    ? "CONNECTED (Live Hosting)"
+                    : "CONNECTED"
+                  : "OFFLINE"}
               </span>
             </div>
 

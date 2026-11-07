@@ -59,6 +59,8 @@ interface AdminSetupTabProps {
   backendStatus: {
     online: boolean;
     database: boolean;
+    databaseName?: string;
+    environment?: "local" | "hosting";
     message: string;
   } | null;
   isCheckingBackend: boolean;
@@ -1150,7 +1152,9 @@ export default function AdminSetupTab({
           </div>
 
           <div className="rounded-2xl border border-[#cddce5] bg-[#edf2f3]/40 p-4 space-y-2">
-            <span className="font-bold text-[#60768a] block">MySQL Database (evon_lms):</span>
+            <span className="font-bold text-[#60768a] block">
+              MySQL Database ({backendStatus?.databaseName || "evon_lms"}):
+            </span>
             <div className="flex items-center gap-2">
               <span
                 className={`size-2.5 rounded-full ${
@@ -1158,7 +1162,11 @@ export default function AdminSetupTab({
                 }`}
               />
               <span className="font-black text-[#102c45]">
-                {backendStatus?.database ? "CONNECTED (Port 3306)" : "OFFLINE (Local Fallback)"}
+                {backendStatus?.database
+                  ? `CONNECTED (${backendStatus?.databaseName || "evon_lms"}${
+                      backendStatus.environment === "hosting" ? " - Live Hosting" : ""
+                    })`
+                  : "OFFLINE (Local Fallback)"}
               </span>
             </div>
           </div>

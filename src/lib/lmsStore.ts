@@ -266,6 +266,8 @@ export async function callBackendApi(endpoint: string, options: RequestInit = {}
 export async function checkBackendStatus(): Promise<{
   online: boolean;
   database: boolean;
+  databaseName?: string;
+  environment?: "local" | "hosting";
   message: string;
   stats?: { total_users: number; total_papers: number; total_results?: number; total_quizzes?: number; total_evaluations?: number };
 }> {
@@ -275,11 +277,15 @@ export async function checkBackendStatus(): Promise<{
       const data = await res.json();
       if (data && data.api === "ONLINE") {
         const isDbConnected = data.database === "CONNECTED";
+        const dbName = data.database_name || (isDbConnected ? "Connected Database" : "evon_lms");
+        const env = data.environment || (data.database_name === "kasuormb_evon" ? "hosting" : "local");
         return {
           online: true,
           database: isDbConnected,
+          databaseName: dbName,
+          environment: env,
           message: isDbConnected
-            ? "PHP Backend & MySQL Database are ONLINE and fully synchronized."
+            ? `PHP Backend & MySQL (${dbName}) are ONLINE and fully synchronized.`
             : data.hint || data.error || "MySQL is currently stopped in XAMPP.",
           stats: data.stats,
         };
@@ -290,6 +296,8 @@ export async function checkBackendStatus(): Promise<{
     return {
       online: false,
       database: false,
+      databaseName: "evon_lms",
+      environment: "local",
       message: errorMsg || "Connection failed. Please check XAMPP Apache and MySQL.",
     };
   }
@@ -297,6 +305,8 @@ export async function checkBackendStatus(): Promise<{
   return {
     online: false,
     database: false,
+    databaseName: "evon_lms",
+    environment: "local",
     message: "XAMPP Apache / MySQL not reachable. Open XAMPP Control Panel and click Start for Apache and MySQL.",
   };
 }
