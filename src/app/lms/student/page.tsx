@@ -192,7 +192,9 @@ export default function StudentLmsPage() {
           <main className="w-full max-w-[1240px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-28 md:pb-6">
             {activeTab === "overview" && (
               <StudentOverviewTab
+                currentUser={currentUser}
                 papers={papers}
+                quizzes={quizzes}
                 evaluations={evaluations}
                 onSelectTab={(tabId) => handleSelectTab(tabId as StudentTab)}
               />
