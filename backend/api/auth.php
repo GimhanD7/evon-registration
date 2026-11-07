@@ -5,7 +5,6 @@
 // ========================================================
 
 require_once __DIR__ . '/../config/db.php';
-require_db_connection();
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
@@ -45,64 +44,88 @@ try {
     // --------------------------------------------------------
     $user = null;
     if ($pdo) {
-        $stmt = $pdo->prepare("
-            SELECT * FROM users 
-            WHERE phone = :raw
-               OR phone = :cleanPhone
-               OR phone = :digitsOnly
-               OR index_no = :raw
-               OR index_no = :cleanPhone
-               OR user_uid = :raw
-               OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+94', '0') = :cleanPhone
-            LIMIT 1
-        ");
-        $stmt->execute([
-            'raw' => $rawIdentifier,
-            'cleanPhone' => $cleanPhone,
-            'digitsOnly' => $digitsOnly,
-        ]);
-        $user = $stmt->fetch();
+        try {
+            $stmt = $pdo->prepare("
+                SELECT * FROM users 
+                WHERE phone = :raw
+                   OR phone = :cleanPhone
+                   OR phone = :digitsOnly
+                   OR index_no = :raw
+                   OR index_no = :cleanPhone
+                   OR user_uid = :raw
+                   OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+94', '0') = :cleanPhone
+                LIMIT 1
+            ");
+            $stmt->execute([
+                'raw' => $rawIdentifier,
+                'cleanPhone' => $cleanPhone,
+                'digitsOnly' => $digitsOnly,
+            ]);
+            $user = $stmt->fetch();
+        } catch (PDOException $qe) {
+            // If table does not exist or schema issue, will fall through to strict fallback
+            $user = null;
+        }
     }
 
     // --------------------------------------------------------
-    // 3. System Administrator Fallback (if database not seeded)
+    // 3. System Administrator & Demo Student Fallback
+    // Strictly requires exact matching password!
     // --------------------------------------------------------
     if (!$user) {
         $isAdminMatch = ($rawIdentifier === '0719998877' || $cleanPhone === '0719998877' || strtolower($rawIdentifier) === 'admin-01' || strtolower($rawIdentifier) === 'admin');
-        if ($isAdminMatch && ($password === 'admin123')) {
-            $user = [
-                'user_uid' => 'admin-01',
-                'full_name' => 'Evon Aravinda (Lead Educator & Admin)',
-                'phone' => '0719998877',
-                'password' => 'admin123',
-                'role' => 'admin',
-                'index_no' => null,
-                'batch' => 'All Batches',
-                'school' => 'Main Faculty',
-                'parent_phone' => null,
-                'avatar_url' => '/images/educator.jpg',
-                'status' => 'active',
-                'created_at' => date('Y-m-d H:i:s'),
-            ];
+        if ($isAdminMatch) {
+            if ($password === 'admin123') {
+                $user = [
+                    'user_uid' => 'admin-01',
+                    'full_name' => 'Evon Aravinda (Lead Educator & Admin)',
+                    'phone' => '0719998877',
+                    'password' => 'admin123',
+                    'role' => 'admin',
+                    'index_no' => null,
+                    'batch' => 'All Batches',
+                    'school' => 'Main Faculty',
+                    'parent_phone' => null,
+                    'avatar_url' => '/images/educator.jpg',
+                    'status' => 'active',
+                    'created_at' => date('Y-m-d H:i:s'),
+                ];
+            } else {
+                http_response_code(401);
+                echo json_encode([
+                    "success" => false,
+                    "error" => "Incorrect password for Lead Educator Admin account."
+                ]);
+                exit();
+            }
         }
 
         // Demo Student Account Fallback
         $isDemoStudent = ($rawIdentifier === '0771234567' || $cleanPhone === '0771234567' || $rawIdentifier === '53914864' || strtolower($rawIdentifier) === 'std-001');
-        if ($isDemoStudent && ($password === 'pass123' || $password === 'student123')) {
-            $user = [
-                'user_uid' => 'std-001',
-                'full_name' => 'Kasun Perera (Sample Student)',
-                'phone' => '0771234567',
-                'password' => $password,
-                'role' => 'student',
-                'index_no' => '53914864',
-                'batch' => '2026 O/L Speed Revision & Paper Class',
-                'school' => 'Royal College, Colombo 07',
-                'parent_phone' => '0777654321',
-                'avatar_url' => '/images/top_student_rank1.jpg',
-                'status' => 'active',
-                'created_at' => date('Y-m-d H:i:s'),
-            ];
+        if ($isDemoStudent) {
+            if ($password === 'pass123' || $password === 'student123') {
+                $user = [
+                    'user_uid' => 'std-001',
+                    'full_name' => 'Kasun Perera (Sample Student)',
+                    'phone' => '0771234567',
+                    'password' => $password,
+                    'role' => 'student',
+                    'index_no' => '53914864',
+                    'batch' => '2026 O/L Speed Revision & Paper Class',
+                    'school' => 'Royal College, Colombo 07',
+                    'parent_phone' => '0777654321',
+                    'avatar_url' => '/images/top_student_rank1.jpg',
+                    'status' => 'active',
+                    'created_at' => date('Y-m-d H:i:s'),
+                ];
+            } else {
+                http_response_code(401);
+                echo json_encode([
+                    "success" => false,
+                    "error" => "Incorrect password. Please verify your credentials."
+                ]);
+                exit();
+            }
         }
     }
 
@@ -120,11 +143,13 @@ try {
     // --------------------------------------------------------
     $dbPass = trim((string)($user['password'] ?? ''));
     $password_matches = (
-        ($dbPass === $password) ||
-        ($dbPass === trim($password)) ||
-        (strcasecmp($dbPass, $password) === 0) ||
-        (!empty($dbPass) && password_verify($password, $dbPass)) ||
-        ($dbPass === md5($password))
+        !empty($dbPass) &&
+        (
+            ($dbPass === $password) ||
+            ($dbPass === trim($password)) ||
+            password_verify($password, $dbPass) ||
+            ($dbPass === md5($password))
+        )
     );
 
     if (!$password_matches) {

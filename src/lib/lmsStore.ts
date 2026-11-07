@@ -642,8 +642,8 @@ export async function loginLms(
       if (data && data.success && data.user) {
         setCurrentLmsUser(data.user);
         return { success: true, user: data.user, backend: true };
-      } else if (data && data.error && response.status !== 500) {
-        // Known credential or account error returned by PHP
+      } else if (data && data.error) {
+        // Explicit credential or account error returned by PHP backend
         return { success: false, error: data.error, backend: true };
       }
     }
@@ -651,20 +651,39 @@ export async function loginLms(
     // PHP backend not reached or offline; fall back to client storage
   }
 
-  // 2. Client-side local verification with stored/seed users
+  // 2. Client-side local verification with stored/seed users (ONLY if backend is offline)
   const users = getLmsUsers();
   const foundUser = users.find(
     (u) =>
-      (u.phone.toLowerCase() === cleanId ||
-        (u.indexNo && u.indexNo.toLowerCase() === cleanId) ||
-        u.id.toLowerCase() === cleanId) &&
-      (u.password ? u.password === cleanPass : true)
+      u.phone.toLowerCase() === cleanId ||
+      (u.indexNo && u.indexNo.toLowerCase() === cleanId) ||
+      u.id.toLowerCase() === cleanId
   );
 
   if (!foundUser) {
     return {
       success: false,
-      error: "Invalid phone number or password. Please verify your credentials.",
+      error: "No account found matching this mobile phone number or Index Number.",
+    };
+  }
+
+  // Strictly verify password - NEVER allow arbitrary passwords for any account
+  const expectedPassword =
+    foundUser.password ||
+    (foundUser.role === "admin" || foundUser.phone === "0719998877"
+      ? "admin123"
+      : foundUser.phone === "0771234567"
+      ? "pass123"
+      : null);
+
+  const passwordValid = expectedPassword
+    ? cleanPass === expectedPassword || (foundUser.phone === "0771234567" && cleanPass === "student123")
+    : false;
+
+  if (!passwordValid) {
+    return {
+      success: false,
+      error: "Incorrect password. Please verify your credentials and try again.",
     };
   }
 

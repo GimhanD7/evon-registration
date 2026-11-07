@@ -119,19 +119,154 @@ try {
     }
 }
 
-// Ensure newly added columns exist on existing tables
+// Ensure core database tables exist automatically
 if ($pdo) {
     try {
-        $cols = $pdo->query("SHOW COLUMNS FROM `users`")->fetchAll(PDO::FETCH_COLUMN);
-        $colNames = array_map('strtolower', $cols ?: []);
-        if (!in_array('avatar_url', $colNames)) {
-            $pdo->exec("ALTER TABLE `users` ADD `avatar_url` VARCHAR(255) DEFAULT NULL");
-        }
-        if (!in_array('enrolled_date', $colNames)) {
-            $pdo->exec("ALTER TABLE `users` ADD `enrolled_date` VARCHAR(30) DEFAULT NULL");
+        $hasUsers = ($pdo->query("SHOW TABLES LIKE 'users'")->rowCount() > 0);
+        if (!$hasUsers) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `users` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `user_uid` VARCHAR(64) NOT NULL UNIQUE,
+              `full_name` VARCHAR(150) NOT NULL,
+              `phone` VARCHAR(20) NOT NULL UNIQUE,
+              `password` VARCHAR(255) NOT NULL,
+              `role` ENUM('admin', 'student', 'superadmin') NOT NULL DEFAULT 'student',
+              `index_no` VARCHAR(50) DEFAULT NULL,
+              `batch` VARCHAR(150) DEFAULT '2026 O/L Speed Revision & Paper Class',
+              `school` VARCHAR(150) DEFAULT NULL,
+              `parent_phone` VARCHAR(20) DEFAULT NULL,
+              `avatar_url` VARCHAR(255) DEFAULT NULL,
+              `enrolled_date` VARCHAR(30) DEFAULT NULL,
+              `status` ENUM('active', 'inactive', 'pending') NOT NULL DEFAULT 'active',
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              INDEX (`phone`),
+              INDEX (`role`),
+              INDEX (`index_no`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+            // Seed root admin and sample student
+            $pdo->exec("INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `index_no`, `batch`, `school`, `avatar_url`, `status`)
+            VALUES 
+            ('admin-01', 'Evon Aravinda (Lead Educator & Admin)', '0719998877', 'admin123', 'admin', NULL, 'All Batches', 'Main Faculty', '/images/educator.jpg', 'active'),
+            ('std-001', 'Kasun Perera (Sample Student)', '0771234567', 'pass123', 'student', '53914864', '2026 O/L Speed Revision & Paper Class', 'Royal College, Colombo 07', '/images/top_student_rank1.jpg', 'active')
+            ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`);");
+        } else {
+            // Ensure avatar_url and enrolled_date columns exist on users
+            $cols = $pdo->query("SHOW COLUMNS FROM `users`")->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            $colNames = array_map('strtolower', $cols);
+            if (!in_array('avatar_url', $colNames)) {
+                $pdo->exec("ALTER TABLE `users` ADD `avatar_url` VARCHAR(255) DEFAULT NULL");
+            }
+            if (!in_array('enrolled_date', $colNames)) {
+                $pdo->exec("ALTER TABLE `users` ADD `enrolled_date` VARCHAR(30) DEFAULT NULL");
+            }
+            // Ensure Lead Educator admin user exists
+            $adminCount = $pdo->query("SELECT COUNT(*) FROM `users` WHERE `role` = 'admin' OR `phone` = '0719998877'")->fetchColumn();
+            if ($adminCount == 0) {
+                $pdo->exec("INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `batch`, `school`, `status`)
+                VALUES ('admin-01', 'Evon Aravinda (Lead Educator & Admin)', '0719998877', 'admin123', 'admin', 'All Batches', 'Main Faculty', 'active')
+                ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`);");
+            }
         }
     } catch (Exception $e) {
-        // Ignore column check errors
+        // Ignore table check errors
+    }
+
+    // Auto-create papers and paper_results tables if not exists
+    try {
+        $hasPapers = ($pdo->query("SHOW TABLES LIKE 'papers'")->rowCount() > 0);
+        if (!$hasPapers) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `papers` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `paper_uid` VARCHAR(64) NOT NULL UNIQUE,
+              `paper_number` VARCHAR(50) NOT NULL,
+              `paper_code` VARCHAR(50) DEFAULT NULL,
+              `title` VARCHAR(255) NOT NULL,
+              `batch` VARCHAR(150) NOT NULL,
+              `subject` VARCHAR(150) DEFAULT 'Business & Accounting Studies',
+              `term` VARCHAR(100) DEFAULT 'Final Pre-Exam Assessment',
+              `month` VARCHAR(50) DEFAULT 'Monthly',
+              `year` INT DEFAULT 2026,
+              `exam_date` VARCHAR(50) DEFAULT '2026',
+              `total_marks` INT DEFAULT 100,
+              `duration_minutes` INT DEFAULT 120,
+              `total_candidates` INT DEFAULT 0,
+              `highest_mark` INT DEFAULT 100,
+              `average_mark` DECIMAL(5,2) DEFAULT 75.00,
+              `pass_percentage` DECIMAL(5,2) DEFAULT 95.00,
+              `topics` TEXT DEFAULT NULL,
+              `topper_info` TEXT DEFAULT NULL,
+              `score_distribution` TEXT DEFAULT NULL,
+              `pdf_url` VARCHAR(255) DEFAULT NULL,
+              `marking_scheme_url` VARCHAR(255) DEFAULT NULL,
+              `status` ENUM('published', 'upcoming', 'grading') NOT NULL DEFAULT 'published',
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              INDEX (`paper_uid`),
+              INDEX (`batch`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        }
+
+        $hasResults = ($pdo->query("SHOW TABLES LIKE 'paper_results'")->rowCount() > 0);
+        if (!$hasResults) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `paper_results` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `result_uid` VARCHAR(64) NOT NULL UNIQUE,
+              `paper_uid` VARCHAR(64) NOT NULL,
+              `rank_in_class` INT DEFAULT 1,
+              `student_name` VARCHAR(150) NOT NULL,
+              `school` VARCHAR(150) DEFAULT NULL,
+              `index_no` VARCHAR(50) NOT NULL,
+              `part1_score` INT DEFAULT 0,
+              `part2_score` INT DEFAULT 0,
+              `total_score` INT DEFAULT 0,
+              `grade` VARCHAR(10) DEFAULT 'A',
+              `achievement` VARCHAR(255) DEFAULT NULL,
+              `avatar_initials` VARCHAR(10) DEFAULT 'ST',
+              `avatar_image` VARCHAR(255) DEFAULT NULL,
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              INDEX (`paper_uid`),
+              INDEX (`index_no`),
+              INDEX (`total_score`),
+              INDEX (`rank_in_class`),
+              UNIQUE KEY `uq_paper_index` (`paper_uid`, `index_no`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        }
+
+        $hasQuizzes = ($pdo->query("SHOW TABLES LIKE 'quizzes'")->rowCount() > 0);
+        if (!$hasQuizzes) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `quizzes` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `quiz_uid` VARCHAR(64) NOT NULL UNIQUE,
+              `title` VARCHAR(255) NOT NULL,
+              `subject` VARCHAR(120) DEFAULT 'Business Studies',
+              `batch` VARCHAR(120) DEFAULT '2026/2027 O/L Commerce',
+              `duration_minutes` INT DEFAULT 15,
+              `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `quiz_questions` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `quiz_uid` VARCHAR(64) NOT NULL,
+              `question_text` TEXT NOT NULL,
+              `options_json` TEXT NOT NULL,
+              `correct_answer` TINYINT NOT NULL COMMENT '0=A, 1=B, 2=C, 3=D',
+              `explanation` TEXT DEFAULT NULL,
+              INDEX (`quiz_uid`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `quiz_attempts` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `quiz_uid` VARCHAR(64) NOT NULL,
+              `user_uid` VARCHAR(64) NOT NULL,
+              `score` INT NOT NULL,
+              `total_marks` INT NOT NULL DEFAULT 100,
+              `attempted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              INDEX (`quiz_uid`),
+              INDEX (`user_uid`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        }
+    } catch (Exception $e) {
+        // Ignore table check errors
     }
 
     try {
@@ -273,6 +408,18 @@ function require_db_connection()
 function get_json_payload()
 {
     $raw = file_get_contents("php://input");
-    return json_decode($raw, true) ?? [];
+    if (!empty($raw)) {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+    if (!empty($_POST)) {
+        return $_POST;
+    }
+    if (!empty($GLOBALS['mock_input']) && is_array($GLOBALS['mock_input'])) {
+        return $GLOBALS['mock_input'];
+    }
+    return [];
 }
 

@@ -1,11 +1,7 @@
 -- ========================================================
 -- Evon Aravinda Commerce Education LMS Database Schema
--- Database: evon_lms
--- XAMPP MySQL Configuration
+-- Database: evon_lms (Local) / kasuormb_evon (Hosting)
 -- ========================================================
-
-CREATE DATABASE IF NOT EXISTS `evon_lms` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `evon_lms`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `national_results`, `quiz_attempts`, `quiz_questions`, `evaluations`, `paper_results`, `quizzes`, `papers`, `users`;

@@ -30,32 +30,20 @@ $results = [
 ];
 
 try {
-    // 1. Connect to MySQL server
+    // 1. Connect to MySQL server and ensure correct database is selected
     if (!$pdo) {
-        $pdo = new PDO("mysql:host={$db_host};port={$db_port};charset=utf8mb4", $db_user, $db_pass, [
+        $pdo = new PDO("mysql:host={$db_host};port={$db_port};dbname={$db_name};charset=utf8mb4", $db_user, $db_pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
         ]);
     }
 
-    // Cleanly drop outdated tables so all new columns (avatar_url, enrolled_date, etc.) are created fresh
-    if ($is_local) {
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-    }
-    $pdo->exec("USE `{$db_name}`;");
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
     $pdo->exec("DROP TABLE IF EXISTS `app_settings`, `activity_logs`, `national_results`, `quiz_attempts`, `quiz_questions`, `evaluations`, `paper_results`, `quizzes`, `papers`, `users`, `batches`;");
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
-    // 2. Load schema.sql & seed_all_data.sql
-    $schemaPath = __DIR__ . '/../database/schema.sql';
+    // 2. Load seed_all_data.sql (which contains all CREATE TABLE definitions and initial records)
     $seedPath = __DIR__ . '/../database/seed_all_data.sql';
-
-    if (file_exists($schemaPath)) {
-        $schemaSql = file_get_contents($schemaPath);
-        $pdo->exec($schemaSql);
-    }
-
     if (file_exists($seedPath)) {
         $seedSql = file_get_contents($seedPath);
         $pdo->exec($seedSql);
