@@ -193,7 +193,7 @@ export default function StudentLmsPage() {
 
         {/* Scrollable Main Content Area */}
         <div className="flex-1 h-full overflow-y-auto flex flex-col justify-between [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <main className="w-full max-w-[1240px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-28 md:pb-6">
+          <main className="w-full max-w-[1240px] mx-auto p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-28 md:pb-6">
             {activeTab === "overview" && (
               <StudentOverviewTab
                 currentUser={currentUser}
