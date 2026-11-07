@@ -6,9 +6,23 @@
 
 // Set CORS and JSON response headers
 if (!headers_sent()) {
-    header("Access-Control-Allow-Origin: *");
+    $allowedOrigins = [
+        'https://technohub.kasunwalakumbura.com',
+        'http://technohub.kasunwalakumbura.com',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost',
+        'http://127.0.0.1',
+    ];
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if (in_array($origin, $allowedOrigins) || empty($origin)) {
+        header("Access-Control-Allow-Origin: " . (!empty($origin) ? $origin : "*"));
+    } else {
+        header("Access-Control-Allow-Origin: *");
+    }
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Origin, Accept");
+    header("Access-Control-Allow-Credentials: true");
     header("Content-Type: application/json; charset=UTF-8");
 }
 
@@ -24,11 +38,52 @@ if (php_sapi_name() === 'cli' && !empty($_SERVER['QUERY_STRING'] ?? '')) {
     $_GET = array_merge($_GET ?? [], $cliGet);
 }
 
-$db_host = getenv('DB_HOST') ?: "127.0.0.1";
-$db_port = getenv('DB_PORT') ?: "3306";
-$db_name = getenv('DB_NAME') ?: "evon_lms";
-$db_user = getenv('DB_USER') ?: "root";
-$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : "";
+// Determine environment: Local XAMPP vs Live Hosting Server
+$serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+$is_local = false;
+
+if (php_sapi_name() === 'cli') {
+    // In CLI / Next.js bridge mode, check if running on Windows or XAMPP path
+    $is_local = (PHP_OS_FAMILY === 'Windows' || stripos(__DIR__, 'xampp') !== false);
+} else {
+    // In web server mode, check hostname
+    $is_local = (
+        empty($serverHost) ||
+        $serverHost === 'localhost' ||
+        $serverHost === '127.0.0.1' ||
+        $serverHost === '::1' ||
+        strpos($serverHost, 'localhost:') === 0 ||
+        strpos($serverHost, '127.0.0.1:') === 0
+    );
+}
+
+if ($is_local) {
+    // 1. Local Development Database (XAMPP MySQL)
+    $db_host = getenv('DB_HOST') ?: "127.0.0.1";
+    $db_port = getenv('DB_PORT') ?: "3306";
+    $db_name = getenv('DB_NAME') ?: "evon_lms";
+    $db_user = getenv('DB_USER') ?: "root";
+    $db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : "";
+} else {
+    // 2. Live Hosting Production Database (cPanel / Live Server)
+    $db_host = getenv('DB_HOST') ?: "localhost";
+    $db_port = getenv('DB_PORT') ?: "3306";
+    $db_name = getenv('DB_NAME') ?: "kasuormb_evon";
+    $db_user = getenv('DB_USER') ?: "kasuormb_evonGimhana";
+    $db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'l=I0!+GOm#S=GW=+';
+}
+
+$customConfigFile = __DIR__ . '/db_config.php';
+if (file_exists($customConfigFile)) {
+    $customConfig = include $customConfigFile;
+    if (is_array($customConfig)) {
+        $db_host = $customConfig['db_host'] ?? $customConfig['DB_HOST'] ?? $db_host;
+        $db_port = $customConfig['db_port'] ?? $customConfig['DB_PORT'] ?? $db_port;
+        $db_name = $customConfig['db_name'] ?? $customConfig['DB_NAME'] ?? $db_name;
+        $db_user = $customConfig['db_user'] ?? $customConfig['DB_USER'] ?? $db_user;
+        $db_pass = $customConfig['db_pass'] ?? $customConfig['DB_PASS'] ?? $db_pass;
+    }
+}
 
 $pdo = null;
 $pdo_error = null;

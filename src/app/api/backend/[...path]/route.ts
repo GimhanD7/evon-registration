@@ -128,11 +128,32 @@ async function handleBackendRequest(
   }
 
   if (!phpBin) {
+    // If local PHP is not installed, try remote hosting API as fallback
+    try {
+      const remoteUrl = `https://technohub.kasunwalakumbura.com/backend/api/${normalizedScript}${urlObj.search}`;
+      let remoteBody: string | undefined = undefined;
+      if (method === "POST") {
+        try { remoteBody = await request.text(); } catch {}
+      }
+      const remoteRes = await fetch(remoteUrl, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: method === "POST" ? remoteBody : undefined,
+      });
+      if (remoteRes.ok) {
+        const remoteData = await remoteRes.json();
+        return NextResponse.json(remoteData, {
+          status: 200,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        });
+      }
+    } catch {}
+
     return NextResponse.json(
       {
         success: false,
         error: "PHP runtime not detected on server.",
-        hint: "Please ensure XAMPP is installed at C:\\xampp",
+        hint: "Please ensure XAMPP is installed at C:\\xampp or connect to https://technohub.kasunwalakumbura.com",
       },
       { status: 500 }
     );

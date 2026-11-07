@@ -1,0 +1,26 @@
+# ========================================================
+# Evon Higher Education LMS - Backend Apache Configuration
+# Hosting: https://technohub.kasunwalakumbura.com
+# ========================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Respond immediately to preflight OPTIONS requests
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Origin, Accept"
+    Header always set Access-Control-Allow-Credentials "true"
+</IfModule>
+
+# Ensure Authorization header reaches PHP in FastCGI / cPanel environments
+<IfModule mod_setenvif.c>
+    SetEnvIfNoCase ^Authorization$ "(.+)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
+# Disable directory browsing
+Options -Indexes
