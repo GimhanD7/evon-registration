@@ -115,18 +115,6 @@ export default function StudentOverviewTab({
   const currentRank = studentEntry?.rank || 1;
   const tierName = studentEntry?.tier || "Elite Scholar";
 
-  // Syllabus readiness calculation
-  const papersProgressPct = totalPapersCount > 0 ? Math.round((evaluatedPapersCount / totalPapersCount) * 100) : 0;
-  const quizzesProgressPct = quizzes.length > 0 ? Math.round((completedQuizzesCount / quizzes.length) * 100) : 0;
-  const overallReadiness = Math.min(
-    100,
-    Math.round(
-      (avgExamScore > 0 ? avgExamScore * 0.5 : 40) +
-        (quizAccuracy > 0 ? quizAccuracy * 0.3 : 30) +
-        (papersProgressPct * 0.2)
-    )
-  );
-
   const studentName = currentUser?.fullName || "Student";
   const studentIndex = currentUser?.indexNo || "53914864";
   const studentBatch = currentUser?.batch || "2026 O/L Speed Revision";
@@ -383,107 +371,7 @@ export default function StudentOverviewTab({
       </div>
 
       {/* ======================================================== */}
-      {/* 3. REVISION PROGRESS & READINESS TRACKER                */}
-      {/* ======================================================== */}
-      <div className="rounded-3xl border border-[#cddce5] bg-white p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#cddce5]/60 pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="h-5 w-1.5 rounded-full bg-[#007fb8]" />
-            <h3 className="text-base font-black text-[#102c45]">
-              Syllabus Speed Revision &amp; Examination Readiness
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#60768a]">Target Exam:</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#e0f2fe] px-2.5 py-0.5 text-xs font-black text-[#007fb8]">
-              <Target size={12} /> 2026 G.C.E. O/L COMMERCE
-            </span>
-          </div>
-        </div>
-
-        {/* 3 Progress Bars */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-          {/* Progress Bar 1 */}
-          <div className="rounded-2xl border border-[#cddce5]/60 bg-[#edf2f3]/50 p-4 space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-[#102c45] flex items-center gap-1.5">
-                <FileText size={14} className="text-[#007fb8]" /> Model Papers Completed
-              </span>
-              <span className="text-[#007fb8] font-black">{papersProgressPct}%</span>
-            </div>
-            <div className="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#007fb8] transition-all duration-700"
-                style={{ width: `${Math.max(10, papersProgressPct)}%` }}
-              />
-            </div>
-            <p className="text-[11px] text-[#60768a]">
-              {evaluatedPapersCount} of {totalPapersCount || 5} papers marked &amp; returned with feedback
-            </p>
-          </div>
-
-          {/* Progress Bar 2 */}
-          <div className="rounded-2xl border border-[#cddce5]/60 bg-[#edf2f3]/50 p-4 space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-[#102c45] flex items-center gap-1.5">
-                <HelpCircle size={14} className="text-[#008dc4]" /> Interactive Quizzes
-              </span>
-              <span className="text-[#008dc4] font-black">{quizzesProgressPct}%</span>
-            </div>
-            <div className="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#0ac9e8] transition-all duration-700"
-                style={{ width: `${Math.max(10, quizzesProgressPct)}%` }}
-              />
-            </div>
-            <p className="text-[11px] text-[#60768a]">
-              {completedQuizzesCount} of {quizzes.length || 2} timed practice quizzes completed
-            </p>
-          </div>
-
-          {/* Progress Bar 3 */}
-          <div className="rounded-2xl border border-[#cddce5]/60 bg-[#edf2f3]/50 p-4 space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-[#102c45] flex items-center gap-1.5">
-                <TrendingUp size={14} className="text-[#159366]" /> O/L Readiness Index
-              </span>
-              <span className="text-[#159366] font-black">{overallReadiness}%</span>
-            </div>
-            <div className="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[#159366] transition-all duration-700"
-                style={{ width: `${overallReadiness}%` }}
-              />
-            </div>
-            <p className="text-[11px] text-[#60768a]">
-              Calculated from average exam score, quiz precision &amp; class participation
-            </p>
-          </div>
-        </div>
-
-        {/* Milestone Badges */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs border-t border-[#cddce5]/40">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[#159366] font-bold">
-              <CheckCircle2 size={14} /> Phase 1: Commercial Foundations
-            </span>
-            <span className="text-slate-300">&bull;</span>
-            <span className="inline-flex items-center gap-1 text-[#007fb8] font-bold">
-              <span className="size-2 rounded-full bg-[#007fb8] animate-ping" /> Phase 2: Speed Paper Discussion (Active)
-            </span>
-            <span className="text-slate-300 hidden sm:inline">&bull;</span>
-            <span className="inline-flex items-center gap-1 text-[#60768a] font-bold hidden sm:inline-flex">
-              Phase 3: National Mock Exam
-            </span>
-          </div>
-          <span className="text-[11px] font-bold text-[#60768a]">
-            Updated for 2026 Examination
-          </span>
-        </div>
-      </div>
-
-      {/* ======================================================== */}
-      {/* 4. TWO-COLUMN WORKSPACE: Recent Exam & Recommended Quiz  */}
+      {/* 3. TWO-COLUMN WORKSPACE: Recent Exam & Recommended Quiz  */}
       {/* ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Recent Exam Results & Performance */}
@@ -640,7 +528,7 @@ export default function StudentOverviewTab({
       </div>
 
       {/* ======================================================== */}
-      {/* 5. LIVE CLASS SCHEDULE & TEACHER'S NOTICEBOARD           */}
+      {/* 4. LIVE CLASS SCHEDULE & TEACHER'S NOTICEBOARD           */}
       {/* ======================================================== */}
       <div className="rounded-3xl border border-[#cddce5] bg-[linear-gradient(135deg,#ffffff_0%,#f0f9ff_100%)] p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -689,7 +577,7 @@ export default function StudentOverviewTab({
       </div>
 
       {/* ======================================================== */}
-      {/* 6. RECENT MODEL PAPERS PREVIEW                           */}
+      {/* 5. RECENT MODEL PAPERS PREVIEW                           */}
       {/* ======================================================== */}
       <div className="rounded-3xl border border-[#cddce5] bg-white p-6 shadow-xs">
         <div className="flex items-center justify-between mb-4">
@@ -748,7 +636,7 @@ export default function StudentOverviewTab({
       </div>
 
       {/* ======================================================== */}
-      {/* 7. QUICK NAVIGATION TILES                                */}
+      {/* 6. QUICK NAVIGATION TILES                                */}
       {/* ======================================================== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         <div
