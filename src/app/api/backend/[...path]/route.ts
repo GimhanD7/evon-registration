@@ -132,10 +132,21 @@ async function handleBackendRequest(
       const contentType = apacheRes.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
         const data = await apacheRes.json();
-        return NextResponse.json(data, {
-          status: 200,
-          headers: { "Access-Control-Allow-Origin": "*" },
-        });
+        // If local database is offline, fall through to live remote hosting
+        if (
+          data &&
+          (data.database === "OFFLINE" ||
+            (data.success === false &&
+              typeof data.error === "string" &&
+              data.error.includes("Database connection unavailable")))
+        ) {
+          // Continue to remote hosting check
+        } else {
+          return NextResponse.json(data, {
+            status: 200,
+            headers: { "Access-Control-Allow-Origin": "*" },
+          });
+        }
       }
     } catch {
       // Apache unavailable or timed out; continue to next fallback
@@ -201,6 +212,18 @@ async function handleBackendRequest(
 
             try {
               const parsed = JSON.parse(jsonString);
+              // If local database is offline, fall through to live remote hosting
+              if (
+                parsed &&
+                (parsed.database === "OFFLINE" ||
+                  (parsed.success === false &&
+                    typeof parsed.error === "string" &&
+                    parsed.error.includes("Database connection unavailable")))
+              ) {
+                resolve(null);
+                return;
+              }
+
               resolve(
                 NextResponse.json(parsed, {
                   status: 200,

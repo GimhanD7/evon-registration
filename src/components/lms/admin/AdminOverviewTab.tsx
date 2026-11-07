@@ -198,7 +198,12 @@ export default function AdminOverviewTab({
                   backendStatus?.database ? "bg-[#e8f7f2] text-[#159366]" : "bg-amber-100 text-amber-800"
                 }`}
               >
-                {backendStatus?.database ? "CONNECTED" : "OFFLINE"}
+                <span
+                  className={`size-2 rounded-full ${
+                    backendStatus?.database ? "bg-[#159366] animate-pulse" : "bg-amber-500"
+                  }`}
+                />
+                {backendStatus?.database ? "CONNECTED" : "OFFLINE (Start MySQL in XAMPP)"}
               </span>
             </div>
 
