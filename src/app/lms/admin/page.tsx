@@ -70,7 +70,42 @@ type AdminTab =
 export default function AdminLmsPage() {
   const router = useRouter();
   const { user: currentUser, isLoaded } = useCurrentLmsUser();
-  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    if (typeof window !== "undefined") {
+      const validTabs: AdminTab[] = [
+        "overview",
+        "papers",
+        "quizzes",
+        "users",
+        "national-results",
+        "evaluations",
+        "activity",
+        "setup",
+        "profile",
+      ];
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as AdminTab | null;
+      if (tabParam && validTabs.includes(tabParam)) {
+        return tabParam;
+      }
+      const savedTab = localStorage.getItem("lms_admin_active_tab") as AdminTab | null;
+      if (savedTab && validTabs.includes(savedTab)) {
+        return savedTab;
+      }
+    }
+    return "overview";
+  });
+
+  const handleSelectTab = (tabId: AdminTab) => {
+    setActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("lms_admin_active_tab", tabId);
+        window.history.replaceState(null, "", `/lms/admin?tab=${tabId}`);
+      } catch {}
+    }
+  };
+
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Core LMS Data
@@ -311,7 +346,7 @@ export default function AdminLmsPage() {
         <LmsSidebar
           items={menuItems}
           activeTab={activeTab}
-          onSelectTab={(tabId) => setActiveTab(tabId as AdminTab)}
+          onSelectTab={(tabId) => handleSelectTab(tabId as AdminTab)}
           isOpenMobile={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           user={currentUser}
@@ -332,7 +367,7 @@ export default function AdminLmsPage() {
                 onCheckBackend={handleCheckBackend}
                 onOpenAddPaper={() => setIsAddPaperOpen(true)}
                 onOpenAddUser={() => setIsAddUserOpen(true)}
-                onSelectTab={(tabId) => setActiveTab(tabId as AdminTab)}
+                onSelectTab={(tabId) => handleSelectTab(tabId as AdminTab)}
               />
             )}
 

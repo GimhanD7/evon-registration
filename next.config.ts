@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
+const isVercel = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+
 const backendBaseUrl = (
   process.env.BACKEND_APACHE_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "http://localhost/Evon-registration/backend"
+  (isVercel
+    ? "https://technohub.kasunwalakumbura.com/backend"
+    : "http://localhost/Evon-registration/backend")
 ).replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {

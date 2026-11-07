@@ -28,17 +28,50 @@ export function getSiteBaseUrl(): string {
 export const REMOTE_HOSTING_URL = "https://technohub.kasunwalakumbura.com";
 
 /**
+ * Detect whether the current runtime environment is local development.
+ * True for localhost, 127.0.0.1, or local machine.
+ * False for Vercel (https://evon-registration.vercel.app) and production hosting.
+ */
+export function isLocalEnvironment(): boolean {
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    return (
+      h === "localhost" ||
+      h === "127.0.0.1" ||
+      h === "::1" ||
+      h.endsWith(".local")
+    );
+  }
+  // Server-side
+  return !process.env.VERCEL && process.env.NODE_ENV !== "production";
+}
+
+/**
  * Get the backend PHP/Apache base URL.
- * Defaults to the standard XAMPP deployment path: http://localhost/Evon-registration/backend
- * Automatically detects when running on technohub.kasunwalakumbura.com
+ * - On Vercel (https://evon-registration.vercel.app) & production: ALWAYS uses live hosting backend
+ *   (https://technohub.kasunwalakumbura.com/backend)
+ * - On local machine: uses local XAMPP Apache backend (http://localhost/Evon-registration/backend)
  */
 export function getBackendBaseUrl(): string {
-  // If running in browser on technohub.kasunwalakumbura.com, default to its backend
-  if (
-    typeof window !== "undefined" &&
-    window.location?.hostname?.includes("kasunwalakumbura.com")
-  ) {
-    return `${window.location.origin}/backend`;
+  // If running in browser:
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    // On Vercel or cloud hosting, always use remote hosting
+    if (h.includes("vercel.app") || h.includes("kasunwalakumbura.com")) {
+      return `${REMOTE_HOSTING_URL}/backend`;
+    }
+    // On local machine
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") {
+      return (
+        process.env.NEXT_PUBLIC_LOCAL_BACKEND_URL ||
+        "http://localhost/Evon-registration/backend"
+      );
+    }
+  }
+
+  // Server-side (Vercel deployment check)
+  if (process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) {
+    return `${REMOTE_HOSTING_URL}/backend`;
   }
 
   const configured =
@@ -61,54 +94,40 @@ export function getDirectBackendUrl(subpath: string): string {
 
 /**
  * Generates an ordered list of candidate URLs to reach a backend API endpoint.
- * Ensures seamless operation across:
- * 1. Local environment (localhost Next.js bridge + XAMPP Apache)
- * 2. Remote web hosting at https://technohub.kasunwalakumbura.com
+ * - When running on Vercel (https://evon-registration.vercel.app):
+ *   Prioritizes the live hosting backend at https://technohub.kasunwalakumbura.com directly.
+ * - When running on local machine (localhost):
+ *   Prioritizes local machine XAMPP Apache & Next.js bridge.
  */
 export function getApiCandidateUrls(endpoint: string): string[] {
   const cleanEndpoint = endpoint.replace(/^\/+/, "");
-  const backendBase = getBackendBaseUrl();
-  const isHostedDomain =
-    typeof window !== "undefined" &&
-    window.location?.hostname?.includes("kasunwalakumbura.com");
 
-  const candidates: string[] = [];
+  const isVercelOrRemote =
+    (typeof window !== "undefined" &&
+      (window.location.hostname.includes("vercel.app") ||
+        window.location.hostname.includes("kasunwalakumbura.com"))) ||
+    Boolean(process.env.VERCEL);
 
-  if (isHostedDomain) {
-    // When running on the live hosting domain, prioritize hosted endpoints first:
-    candidates.push(
-      `/backend/api/${cleanEndpoint}`,
-      `/api/backend/${cleanEndpoint}`,
-      `${backendBase}/api/${cleanEndpoint}`,
+  if (isVercelOrRemote) {
+    // Vercel deployment: Fetch directly from live hosting database
+    return [
       `${REMOTE_HOSTING_URL}/backend/api/${cleanEndpoint}`,
-      `${REMOTE_HOSTING_URL}/api/${cleanEndpoint}`,
-      `${REMOTE_HOSTING_URL}/Evon-registration/backend/api/${cleanEndpoint}`
-    );
-  } else {
-    // When running locally, prioritize local endpoints, with remote hosting as fallback:
-    candidates.push(
-      // 1. Next.js native API bridge
       `/api/backend/${cleanEndpoint}`,
-
-      // 2. Proxied path via Next.js rewrites
       `/backend/api/${cleanEndpoint}`,
-
-      // 3. Configured backend base URL
-      `${backendBase}/api/${cleanEndpoint}`,
-
-      // 4. Default XAMPP localhost
-      `http://localhost/Evon-registration/backend/api/${cleanEndpoint}`,
-
-      // 5. Default XAMPP 127.0.0.1
-      `http://127.0.0.1/Evon-registration/backend/api/${cleanEndpoint}`,
-
-      // 6. Remote hosting endpoints (https://technohub.kasunwalakumbura.com)
-      `${REMOTE_HOSTING_URL}/backend/api/${cleanEndpoint}`,
       `${REMOTE_HOSTING_URL}/api/${cleanEndpoint}`,
-      `${REMOTE_HOSTING_URL}/Evon-registration/backend/api/${cleanEndpoint}`
-    );
+      `${REMOTE_HOSTING_URL}/Evon-registration/backend/api/${cleanEndpoint}`,
+    ];
   }
 
-  // Return deduplicated list
-  return Array.from(new Set(candidates));
+  // Local machine development: Fetch from local XAMPP backend
+  const backendBase = getBackendBaseUrl();
+  return [
+    `/api/backend/${cleanEndpoint}`,
+    `/backend/api/${cleanEndpoint}`,
+    `${backendBase}/api/${cleanEndpoint}`,
+    `http://localhost/Evon-registration/backend/api/${cleanEndpoint}`,
+    `http://127.0.0.1/Evon-registration/backend/api/${cleanEndpoint}`,
+    // Remote hosting fallback
+    `${REMOTE_HOSTING_URL}/backend/api/${cleanEndpoint}`,
+  ];
 }

@@ -42,15 +42,22 @@ export default function StudentLmsPage() {
   const { user: currentUser, isLoaded } = useCurrentLmsUser();
   const [activeTab, setActiveTab] = useState<StudentTab>(() => {
     if (typeof window !== "undefined") {
+      const validTabs: StudentTab[] = [
+        "overview",
+        "papers",
+        "quizzes",
+        "results",
+        "evaluation",
+        "profile",
+      ];
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") as StudentTab | null;
-      if (
-        tabParam &&
-        ["overview", "papers", "quizzes", "results", "evaluation", "profile"].includes(
-          tabParam
-        )
-      ) {
+      if (tabParam && validTabs.includes(tabParam)) {
         return tabParam;
+      }
+      const savedTab = localStorage.getItem("lms_student_active_tab") as StudentTab | null;
+      if (savedTab && validTabs.includes(savedTab)) {
+        return savedTab;
       }
     }
     return "overview";
@@ -103,7 +110,10 @@ export default function StudentLmsPage() {
   const handleSelectTab = (tabId: StudentTab) => {
     setActiveTab(tabId);
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", `/lms/student?tab=${tabId}`);
+      try {
+        localStorage.setItem("lms_student_active_tab", tabId);
+        window.history.replaceState(null, "", `/lms/student?tab=${tabId}`);
+      } catch {}
     }
   };
 

@@ -106,6 +106,41 @@ async function handleBackendRequest(
 
     const urlObj = new URL(request.url);
 
+    // Check if running on Vercel (https://evon-registration.vercel.app)
+    const isVercel = Boolean(
+      process.env.VERCEL ||
+      process.env.NEXT_PUBLIC_VERCEL_ENV ||
+      request.headers.get("host")?.includes("vercel.app")
+    );
+
+    if (isVercel) {
+      // On Vercel: All data comes directly from the live hosting database (https://technohub.kasunwalakumbura.com)
+      try {
+        const remoteUrl = `https://technohub.kasunwalakumbura.com/backend/api/${normalizedScript}${urlObj.search}`;
+        const remoteRes = await fetch(remoteUrl, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: method === "POST" ? bodyData : undefined,
+        });
+        const remoteContentType = remoteRes.headers.get("content-type") || "";
+        if (remoteContentType.includes("application/json")) {
+          const remoteData = await remoteRes.json();
+          return NextResponse.json(remoteData, {
+            status: 200,
+            headers: { "Access-Control-Allow-Origin": "*" },
+          });
+        }
+      } catch (err: any) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to reach hosting backend: " + (err?.message || "Connection error"),
+          },
+          { status: 200 }
+        );
+      }
+    }
+
     // 2. Try Local Apache backend first (http://127.0.0.1/Evon-registration/backend)
     const backendBase = (
       process.env.BACKEND_APACHE_URL ||
