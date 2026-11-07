@@ -109,10 +109,11 @@ export function getApiCandidateUrls(endpoint: string): string[] {
     Boolean(process.env.VERCEL);
 
   if (isVercelOrRemote) {
-    // Vercel deployment: Fetch directly from live hosting database
+    // Vercel deployment: Prioritize same-origin Next.js server proxy (/api/backend/...)
+    // This executes server-side to technohub.kasunwalakumbura.com with 0 browser CORS blocks
     return [
-      `${REMOTE_HOSTING_URL}/backend/api/${cleanEndpoint}`,
       `/api/backend/${cleanEndpoint}`,
+      `${REMOTE_HOSTING_URL}/backend/api/${cleanEndpoint}`,
       `/backend/api/${cleanEndpoint}`,
       `${REMOTE_HOSTING_URL}/api/${cleanEndpoint}`,
       `${REMOTE_HOSTING_URL}/Evon-registration/backend/api/${cleanEndpoint}`,

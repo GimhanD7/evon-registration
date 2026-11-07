@@ -17,6 +17,7 @@ const ALLOWED_SCRIPTS = new Set([
   "quizzes.php",
   "activity_logs.php",
   "settings.php",
+  "timetable.php",
 ]);
 
 const PHP_CLI_PATHS = [
@@ -129,6 +130,62 @@ async function handleBackendRequest(
             status: 200,
             headers: { "Access-Control-Allow-Origin": "*" },
           });
+        }
+
+        // Resilient fallback for timetable.php -> settings.php on live hosting
+        if (normalizedScript === "timetable.php") {
+          if (method === "GET") {
+            const fallbackRes = await fetch(
+              `https://technohub.kasunwalakumbura.com/backend/api/settings.php?key=timetable_data`
+            );
+            if (fallbackRes.ok) {
+              const sData = await fallbackRes.json();
+              let institutes: any[] = [];
+              if (sData?.value) {
+                try {
+                  const parsed = JSON.parse(sData.value);
+                  if (Array.isArray(parsed)) institutes = parsed;
+                } catch {}
+              }
+              return NextResponse.json(
+                {
+                  success: true,
+                  count: institutes.length,
+                  institutes,
+                  has_custom_data: institutes.length > 0,
+                },
+                { status: 200, headers: { "Access-Control-Allow-Origin": "*" } }
+              );
+            }
+          } else if (method === "POST") {
+            let parsedPayload: any = {};
+            try {
+              parsedPayload = JSON.parse(bodyData);
+            } catch {}
+            const institutes = parsedPayload.institutes || parsedPayload;
+            const fallbackRes = await fetch(
+              `https://technohub.kasunwalakumbura.com/backend/api/settings.php`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  key: "timetable_data",
+                  value: JSON.stringify(institutes),
+                }),
+              }
+            );
+            if (fallbackRes.ok) {
+              return NextResponse.json(
+                {
+                  success: true,
+                  message:
+                    "Timetable updated successfully in MySQL database (via settings bridge).",
+                  count: Array.isArray(institutes) ? institutes.length : 0,
+                },
+                { status: 200, headers: { "Access-Control-Allow-Origin": "*" } }
+              );
+            }
+          }
         }
       } catch (err: any) {
         return NextResponse.json(
