@@ -19,7 +19,6 @@ import {
   LayoutDashboard,
   // FileText,
   HelpCircle,
-  Award,
   User as UserIcon,
 } from "lucide-react";
 import StudentLoginModal from "@/components/StudentLoginModal";
@@ -481,16 +480,16 @@ export default function Header({ onOpenJoin, onOpenLogin }: HeaderProps) {
               )}
             </Link>
 
-            {/* 5. Teacher Evaluation */}
+            {/* 5. Leaderboard */}
             <Link
               href="/lms/student?tab=evaluation"
               className="group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 text-[#60768a] font-semibold hover:text-[#102c45]"
             >
               <span className="flex size-8 items-center justify-center rounded-xl transition-all group-hover:bg-[#f1f5f9] text-[#60768a]">
-                <Award size={17} strokeWidth={2} />
+                <Trophy size={17} strokeWidth={2} />
               </span>
               <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
-                Evaluation
+                Leaderboard
               </span>
             </Link>
 

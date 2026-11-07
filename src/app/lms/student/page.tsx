@@ -63,14 +63,19 @@ export default function StudentLmsPage() {
   });
 
   useEffect(() => {
-    const refresh = () => setPapers(getLmsPapers());
+    const refresh = () => {
+      setPapers(getLmsPapers());
+      setQuizzes(getLmsQuizzes());
+    };
     refresh();
     syncPapersFromBackend().then(() => refresh());
 
     window.addEventListener("lms_papers_change", refresh);
+    window.addEventListener("lms_quizzes_change", refresh);
     window.addEventListener("storage", refresh);
     return () => {
       window.removeEventListener("lms_papers_change", refresh);
+      window.removeEventListener("lms_quizzes_change", refresh);
       window.removeEventListener("storage", refresh);
     };
   }, []);
@@ -104,8 +109,8 @@ export default function StudentLmsPage() {
     { id: "overview", label: "Dashboard Overview", icon: LayoutDashboard },
     { id: "papers", label: "Model Papers", icon: FileText, count: papers.length },
     { id: "quizzes", label: "Interactive Quizzes", icon: HelpCircle, count: quizzes.length },
-    { id: "results", label: "Exam Results", icon: Trophy },
-    { id: "evaluation", label: "Teacher Evaluation", icon: Award, count: evaluations.length },
+    { id: "results", label: "Exam Results", icon: Award },
+    { id: "evaluation", label: "Leaderboard", icon: Trophy },
     { id: "profile", label: "My Profile", icon: UserIcon },
   ];
 

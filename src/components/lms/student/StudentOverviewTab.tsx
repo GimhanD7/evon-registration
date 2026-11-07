@@ -3,7 +3,6 @@ import {
   FileText,
   HelpCircle,
   Trophy,
-  MessageSquare,
   Download,
 } from "lucide-react";
 import { LMSPaper, LMSEvaluation } from "@/data/lmsData";
@@ -77,20 +76,23 @@ export default function StudentOverviewTab({
           </div>
         </div>
 
-        {/* Card 4: Teacher Feedback */}
-        <div className="rounded-3xl border border-[#cddce5] bg-white p-5 sm:p-6 shadow-xs flex flex-col justify-between transition-transform hover:-translate-y-0.5">
+        {/* Card 4: Leaderboard */}
+        <div
+          onClick={() => onSelectTab("evaluation")}
+          className="rounded-3xl border border-[#cddce5] bg-white p-5 sm:p-6 shadow-xs flex flex-col justify-between transition-transform hover:-translate-y-0.5 cursor-pointer"
+        >
           <div className="flex size-11 items-center justify-center rounded-2xl border border-[#f59e0b]/30 bg-[#fef3c7] text-[#d97706] shadow-xs">
-            <MessageSquare size={20} strokeWidth={2.4} />
+            <Trophy size={20} strokeWidth={2.4} />
           </div>
           <div className="mt-4">
             <span className="text-[11px] font-extrabold tracking-wider text-[#60768a] uppercase">
-              Evaluations
+              Leaderboard
             </span>
             <div className="mt-1 text-2xl sm:text-3xl font-black text-[#102c45]">
-              {evaluations.length || 1}
+              Rank #01
             </div>
             <span className="mt-1 inline-block text-[11px] font-bold text-[#d97706]">
-              Grade: Very Good
+              {evaluations.length > 0 ? "Evaluated Points" : "Points League"}
             </span>
           </div>
         </div>

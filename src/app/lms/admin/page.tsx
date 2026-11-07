@@ -7,7 +7,7 @@ import {
   Users,
   FileText,
   HelpCircle,
-  Award,
+  Trophy,
   ShieldCheck,
   User as UserIcon,
 } from "lucide-react";
@@ -145,7 +145,7 @@ export default function AdminLmsPage() {
       icon: Users,
       count: users.filter((u) => u.role === "student").length,
     },
-    { id: "evaluations", label: "Record Evaluations", icon: Award },
+    { id: "evaluations", label: "Leaderboard & Evaluations", icon: Trophy },
     { id: "settings", label: "Security & System", icon: ShieldCheck },
     { id: "profile", label: "My Profile", icon: UserIcon },
   ];
@@ -228,7 +228,9 @@ export default function AdminLmsPage() {
               />
             )}
 
-            {activeTab === "quizzes" && <AdminQuizzesTab quizzes={quizzes} />}
+            {activeTab === "quizzes" && (
+              <AdminQuizzesTab quizzes={quizzes} onRefresh={refreshData} />
+            )}
 
             {activeTab === "evaluations" && (
               <AdminEvaluationsTab

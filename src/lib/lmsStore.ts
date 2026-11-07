@@ -1164,8 +1164,64 @@ export function saveQuizScore(quizId: string, score: number, totalMarks: number)
       q.id === quizId ? { ...q, completed: true, score, totalMarks } : q
     );
     localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_quizzes_change"));
   } catch (err) {
     console.error("Error saving quiz score:", err);
+  }
+}
+
+export function addLmsQuiz(quizData: Omit<LMSQuiz, "id">): LMSQuiz {
+  const newQuiz: LMSQuiz = {
+    ...quizData,
+    id: `quiz-${Date.now()}`,
+  };
+  if (!isClient()) return newQuiz;
+  try {
+    const quizzes = getLmsQuizzes();
+    const updated = [newQuiz, ...quizzes];
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_quizzes_change"));
+  } catch (err) {
+    console.error("Error adding quiz:", err);
+  }
+  return newQuiz;
+}
+
+export function updateLmsQuiz(updatedQuiz: LMSQuiz): void {
+  if (!isClient()) return;
+  try {
+    const quizzes = getLmsQuizzes();
+    const updated = quizzes.map((q) => (q.id === updatedQuiz.id ? updatedQuiz : q));
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_quizzes_change"));
+  } catch (err) {
+    console.error("Error updating quiz:", err);
+  }
+}
+
+export function deleteLmsQuiz(quizId: string): void {
+  if (!isClient()) return;
+  try {
+    const quizzes = getLmsQuizzes();
+    const updated = quizzes.filter((q) => q.id !== quizId);
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_quizzes_change"));
+  } catch (err) {
+    console.error("Error deleting quiz:", err);
+  }
+}
+
+export function retakeLmsQuiz(quizId: string): void {
+  if (!isClient()) return;
+  try {
+    const quizzes = getLmsQuizzes();
+    const updated = quizzes.map((q) =>
+      q.id === quizId ? { ...q, completed: false, score: undefined } : q
+    );
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_quizzes_change"));
+  } catch (err) {
+    console.error("Error resetting quiz:", err);
   }
 }
 
