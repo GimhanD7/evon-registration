@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import LmsPagination from "@/components/lms/shared/LmsPagination";
 import {
   HelpCircle,
@@ -416,16 +416,14 @@ export default function AdminQuizzesTab({ quizzes, onRefresh }: AdminQuizzesTabP
     });
   }, [quizzes, searchQuery, selectedSubject, selectedBatch]);
 
-  // Reset page when filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedSubject, selectedBatch]);
+  const totalPages = Math.max(1, Math.ceil(filteredQuizzes.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
 
   // Paginated Quizzes slice
   const paginatedQuizzes = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    const start = (safePage - 1) * pageSize;
     return filteredQuizzes.slice(start, start + pageSize);
-  }, [filteredQuizzes, currentPage, pageSize]);
+  }, [filteredQuizzes, safePage, pageSize]);
 
   return (
     <div className="space-y-6">
@@ -633,7 +631,7 @@ export default function AdminQuizzesTab({ quizzes, onRefresh }: AdminQuizzesTabP
         {filteredQuizzes.length > 0 && (
           <div className="rounded-3xl border border-[#cddce5] bg-white p-4 shadow-xs">
             <LmsPagination
-              currentPage={currentPage}
+              currentPage={safePage}
               totalItems={filteredQuizzes.length}
               pageSize={pageSize}
               onPageChange={setCurrentPage}

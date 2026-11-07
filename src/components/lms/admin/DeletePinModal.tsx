@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { KeyRound, ShieldAlert, X } from "lucide-react";
-import { verifySecurityPin } from "@/lib/lmsStore";
+import React, { useState, useEffect } from "react";
+import { KeyRound, ShieldAlert, X, RefreshCw } from "lucide-react";
+import {
+  verifySecurityPinAsync,
+  verifySecurityPin,
+  syncSecurityPinFromBackend,
+} from "@/lib/lmsStore";
 
 interface DeletePinModalProps {
   isOpen: boolean;
@@ -18,34 +22,61 @@ export default function DeletePinModal({
   onClose,
   onConfirm,
   title,
-  description = "Enter your 4-digit Administrator Security PIN to authorize this permanent action.",
+  description = "Enter your Administrator Security PIN to authorize this permanent action.",
   actionButtonText = "Authorize & Delete",
 }: DeletePinModalProps) {
   const [pin, setPin] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Sync latest PIN from MySQL database whenever the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setPin("");
+      setErrorMsg("");
+      syncSecurityPinFromBackend().catch(() => {});
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pin.trim()) {
+    const cleanPin = pin.trim();
+    if (!cleanPin) {
       setErrorMsg("Please enter the Security PIN.");
       return;
     }
 
     setIsSubmitting(true);
-    const isValid = verifySecurityPin(pin.trim());
-    if (isValid) {
-      setErrorMsg("");
-      setPin("");
-      onConfirm();
-      onClose();
-    } else {
-      setErrorMsg("Incorrect Security PIN. Action Denied.");
-      setPin("");
+    setErrorMsg("");
+
+    try {
+      // Verify against MySQL database
+      const isValid = await verifySecurityPinAsync(cleanPin);
+      if (isValid) {
+        setErrorMsg("");
+        setPin("");
+        onConfirm();
+        onClose();
+      } else {
+        setErrorMsg("Incorrect Security PIN. Authorization Denied.");
+        setPin("");
+      }
+    } catch {
+      // Fallback verification
+      if (verifySecurityPin(cleanPin)) {
+        setErrorMsg("");
+        setPin("");
+        onConfirm();
+        onClose();
+      } else {
+        setErrorMsg("Incorrect Security PIN. Authorization Denied.");
+        setPin("");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -87,7 +118,7 @@ export default function DeletePinModal({
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div>
             <label className="block text-[11px] font-bold text-[#60768a] mb-1">
-              Administrator Security PIN (Default: 1234)
+              Database Administrator Security PIN
             </label>
             <div className="relative">
               <KeyRound

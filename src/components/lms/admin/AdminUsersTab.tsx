@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   X,
   CheckCircle2,
+  AlertCircle,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { LMSUser } from "@/data/lmsData";
 import { useLmsBatches } from "@/lib/lmsStore";
 import DeletePinModal from "@/components/lms/admin/DeletePinModal";
 import LmsPagination from "@/components/lms/shared/LmsPagination";
+import { validateFullName, validateWhatsAppPhone } from "@/lib/validation";
 
 interface AdminUsersTabProps {
   users: LMSUser[];
@@ -53,6 +55,7 @@ export default function AdminUsersTab({
   const [editStatus, setEditStatus] = useState<"active" | "inactive" | "pending">("active");
   const [showPassword, setShowPassword] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState("");
+  const [editErrorMsg, setEditErrorMsg] = useState("");
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,15 +85,13 @@ export default function AdminUsersTab({
     });
   }, [users, searchQuery, selectedRoleFilter, selectedBatchFilter]);
 
-  // Reset to first page when search/filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedRoleFilter, selectedBatchFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
 
   const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    const start = (safePage - 1) * pageSize;
     return filteredUsers.slice(start, start + pageSize);
-  }, [filteredUsers, currentPage, pageSize]);
+  }, [filteredUsers, safePage, pageSize]);
 
   const handleOpenEdit = (user: LMSUser) => {
     setEditingUser(user);
@@ -104,17 +105,31 @@ export default function AdminUsersTab({
     setEditStatus(user.status || "active");
     setShowPassword(false);
     setSaveSuccessMsg("");
+    setEditErrorMsg("");
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+    setEditErrorMsg("");
+
+    const nameVal = validateFullName(editFullName);
+    if (!nameVal.valid) {
+      setEditErrorMsg(nameVal.error || "Please enter student's full name.");
+      return;
+    }
+
+    const phoneVal = validateWhatsAppPhone(editPhone);
+    if (!phoneVal.valid) {
+      setEditErrorMsg(phoneVal.error || "Please enter a valid WhatsApp phone number.");
+      return;
+    }
 
     // Notice: editingUser.indexNo is preserved permanently without modification
     const updated: LMSUser = {
       ...editingUser,
       fullName: editFullName.trim(),
-      phone: editPhone.trim(),
+      phone: phoneVal.normalized || editPhone.trim(),
       password: editPassword.trim(),
       role: editRole,
       batch: editBatch,
@@ -130,6 +145,7 @@ export default function AdminUsersTab({
     setTimeout(() => {
       setEditingUser(null);
       setSaveSuccessMsg("");
+      setEditErrorMsg("");
     }, 1200);
   };
 
@@ -327,7 +343,7 @@ export default function AdminUsersTab({
 
         {/* User Pagination Bar */}
         <LmsPagination
-          currentPage={currentPage}
+          currentPage={safePage}
           totalItems={filteredUsers.length}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
@@ -369,6 +385,13 @@ export default function AdminUsersTab({
               <div className="flex items-center gap-2 rounded-2xl bg-[#e8f7f2] border border-[#38d995] p-3 text-xs font-black text-[#159366]">
                 <CheckCircle2 size={16} />
                 <span>{saveSuccessMsg}</span>
+              </div>
+            )}
+
+            {editErrorMsg && (
+              <div className="flex items-center gap-2 rounded-2xl bg-red-50 border border-red-200 p-3 text-xs font-black text-red-600">
+                <AlertCircle size={16} />
+                <span>{editErrorMsg}</span>
               </div>
             )}
 

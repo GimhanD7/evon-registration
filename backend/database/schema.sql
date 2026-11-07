@@ -92,10 +92,14 @@ CREATE TABLE IF NOT EXISTS `national_results` (
   `student_name` VARCHAR(150) NOT NULL,
   `school` VARCHAR(150) NOT NULL,
   `index_no` VARCHAR(50) NOT NULL UNIQUE,
+  `year` INT DEFAULT 2025,
   `grade_badge` VARCHAR(10) NOT NULL,
   `letter_grade` VARCHAR(5) NOT NULL,
   `is_top_champion` TINYINT(1) DEFAULT 0,
+  `quote` TEXT DEFAULT NULL,
+  `avatar_image` VARCHAR(255) DEFAULT NULL,
   INDEX (`index_no`),
+  INDEX (`year`),
   INDEX (`grade_badge`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -149,3 +153,49 @@ CREATE TABLE IF NOT EXISTS `evaluations` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX (`student_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 8. Activity Logs Table
+CREATE TABLE IF NOT EXISTS `activity_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `log_uid` VARCHAR(64) NOT NULL UNIQUE,
+  `user_id` VARCHAR(64) DEFAULT 'guest',
+  `user_name` VARCHAR(150) NOT NULL DEFAULT 'Anonymous User',
+  `user_role` VARCHAR(50) NOT NULL DEFAULT 'student',
+  `action` VARCHAR(255) NOT NULL,
+  `category` VARCHAR(50) NOT NULL DEFAULT 'system',
+  `details` TEXT DEFAULT NULL,
+  `ip_address` VARCHAR(100) DEFAULT NULL,
+  `device` VARCHAR(255) DEFAULT NULL,
+  `status` ENUM('success', 'warning', 'info') NOT NULL DEFAULT 'info',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`user_id`),
+  INDEX (`category`),
+  INDEX (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 9. App Settings Table (Stores System Config & Security PIN)
+CREATE TABLE IF NOT EXISTS `app_settings` (
+  `setting_key` VARCHAR(64) PRIMARY KEY,
+  `setting_value` TEXT NOT NULL,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `app_settings` (`setting_key`, `setting_value`)
+VALUES ('security_pin', '1234')
+ON DUPLICATE KEY UPDATE `setting_key`=`setting_key`;
+
+-- 10. Batches Table (Commerce Batch Programs)
+CREATE TABLE IF NOT EXISTS `batches` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(150) NOT NULL UNIQUE,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `batches` (`name`) VALUES
+('2026/2027 O/L Commerce'),
+('2027 O/L Commerce Foundation (Grade 10)'),
+('2026/2027 Grade 11 Theory'),
+('2026 O/L Speed Revision & Paper Class'),
+('All Batches (Commerce)')
+ON DUPLICATE KEY UPDATE `name`=`name`;

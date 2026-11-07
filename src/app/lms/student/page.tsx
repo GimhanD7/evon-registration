@@ -16,8 +16,10 @@ import {
   getLmsPapers,
   syncPapersFromBackend,
   getLmsQuizzes,
+  syncQuizzesFromBackend,
   saveQuizScore,
   getLmsEvaluations,
+  syncEvaluationsFromBackend,
   updateLmsUser,
 } from "@/lib/lmsStore";
 
@@ -56,32 +58,44 @@ export default function StudentLmsPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Core Data
+  const currentUserId = currentUser?.id;
   const [papers, setPapers] = useState(() => getLmsPapers());
   const [quizzes, setQuizzes] = useState(() => getLmsQuizzes());
-  const [evaluations] = useState(() => {
-    return currentUser ? getLmsEvaluations(currentUser.id) : getLmsEvaluations();
+  const [evaluations, setEvaluations] = useState(() => {
+    return currentUserId ? getLmsEvaluations(currentUserId) : getLmsEvaluations();
   });
 
   useEffect(() => {
+    let active = true;
     const refresh = () => {
+      if (!active) return;
       setPapers(getLmsPapers());
       setQuizzes(getLmsQuizzes());
+      setEvaluations(currentUserId ? getLmsEvaluations(currentUserId) : getLmsEvaluations());
     };
     refresh();
-    syncPapersFromBackend().then(() => refresh());
+
+    Promise.all([
+      syncPapersFromBackend(),
+      syncQuizzesFromBackend(),
+      syncEvaluationsFromBackend(),
+    ]).then(() => {
+      if (active) refresh();
+    });
 
     window.addEventListener("lms_papers_change", refresh);
     window.addEventListener("lms_quizzes_change", refresh);
-    window.addEventListener("storage", refresh);
+    window.addEventListener("lms_evaluations_change", refresh);
     return () => {
+      active = false;
       window.removeEventListener("lms_papers_change", refresh);
       window.removeEventListener("lms_quizzes_change", refresh);
-      window.removeEventListener("storage", refresh);
+      window.removeEventListener("lms_evaluations_change", refresh);
     };
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
-    if (isLoaded && (!currentUser || currentUser.role !== "student")) {
+    if (isLoaded && !currentUser) {
       router.push("/#login");
     }
   }, [isLoaded, currentUser, router]);

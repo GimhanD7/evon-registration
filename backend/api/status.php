@@ -36,6 +36,7 @@ try {
         "success" => true,
         "api" => "ONLINE",
         "php_version" => PHP_VERSION,
+        "environment" => $is_local ? "local" : "hosting",
         "database" => "CONNECTED",
         "database_name" => $db_name,
         "stats" => [

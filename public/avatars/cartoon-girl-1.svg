@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+    <linearGradient id="hair2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#451a03"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#bg2)"/>
+  <!-- Body/Clothes -->
+  <path d="M26 110 C26 88 42 82 60 82 C78 82 94 88 94 110 Z" fill="#831843"/>
+  <circle cx="60" cy="84" r="14" fill="#fdf2f8"/>
+  <!-- Neck -->
+  <rect x="53" y="70" width="14" height="16" rx="4" fill="#fed7aa"/>
+  <!-- Ponytail background -->
+  <ellipse cx="60" cy="24" rx="14" ry="10" fill="#451a03"/>
+  <circle cx="60" cy="24" r="6" fill="#fb7185"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="54" rx="22" ry="25" fill="#fef08a" opacity="0.2"/>
+  <ellipse cx="60" cy="54" rx="22" ry="25" fill="#fed7aa"/>
+  <!-- Ears -->
+  <circle cx="38" cy="55" r="4.5" fill="#fca5a5"/>
+  <circle cx="82" cy="55" r="4.5" fill="#fca5a5"/>
+  <circle cx="38" cy="58" r="1.5" fill="#fbbf24"/>
+  <circle cx="82" cy="58" r="1.5" fill="#fbbf24"/>
+  <!-- Hair Front -->
+  <path d="M38 52 C36 30 48 24 60 24 C72 24 84 30 82 52 C78 36 68 34 60 34 C52 34 42 36 38 52 Z" fill="url(#hair2)"/>
+  <!-- Eyes -->
+  <ellipse cx="49" cy="53" rx="3" ry="4" fill="#451a03"/>
+  <ellipse cx="71" cy="53" rx="3" ry="4" fill="#451a03"/>
+  <circle cx="48" cy="51.5" r="1.2" fill="#ffffff"/>
+  <circle cx="70" cy="51.5" r="1.2" fill="#ffffff"/>
+  <!-- Eyelashes -->
+  <path d="M45 48 L43 45 M53 48 L55 45" stroke="#451a03" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M67 48 L65 45 M75 48 L77 45" stroke="#451a03" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Smile -->
+  <path d="M53 65 Q60 72 67 65" fill="#be123c" stroke="#be123c" stroke-width="1.5"/>
+  <!-- Blush -->
+  <circle cx="44" cy="61" r="3.5" fill="#fb7185" opacity="0.6"/>
+  <circle cx="76" cy="61" r="3.5" fill="#fb7185" opacity="0.6"/>
+  <!-- Study Hairpin -->
+  <rect x="70" y="32" width="10" height="3" rx="1.5" fill="#38bdf8" transform="rotate(25 75 33)"/>
+</svg>

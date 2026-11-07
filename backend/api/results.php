@@ -27,6 +27,58 @@ $userLookupCols = $hasAvatarCol ? "full_name, school, avatar_url" : "full_name, 
 
 // 1. GET: Fetch results
 if ($method === 'GET') {
+    $type = trim($_GET['type'] ?? '');
+    if ($type === 'national') {
+        try {
+            $yearFilter = isset($_GET['year']) && is_numeric($_GET['year']) ? (int)$_GET['year'] : null;
+            $topOnly = !empty($_GET['topOnly']) || !empty($_GET['championsOnly']);
+            
+            $sql = "SELECT 
+                id, 
+                student_name as `name`, 
+                school, 
+                index_no as indexNo, 
+                COALESCE(`year`, 2025) as `year`,
+                grade_badge as gradeBadge, 
+                letter_grade as letterGrade, 
+                is_top_champion as isTopChampion,
+                quote,
+                avatar_image as avatarImage
+                FROM national_results WHERE 1=1";
+            $params = [];
+            if ($yearFilter) {
+                $sql .= " AND `year` = :yr";
+                $params['yr'] = $yearFilter;
+            }
+            if ($topOnly) {
+                $sql .= " AND is_top_champion = 1";
+            }
+            $sql .= " ORDER BY `year` DESC, is_top_champion DESC, id ASC";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $results = $stmt->fetchAll();
+
+            // Extract all available years in descending order
+            $yearsStmt = $pdo->query("SELECT DISTINCT COALESCE(`year`, 2025) as yr FROM national_results ORDER BY yr DESC");
+            $rawYears = $yearsStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            $availableYears = array_values(array_unique(array_map('intval', array_merge($rawYears, [2026, 2025]))));
+            rsort($availableYears);
+            $latestYear = !empty($rawYears) ? (int)$rawYears[0] : 2026;
+
+            echo json_encode([
+                "success" => true, 
+                "results" => $results, 
+                "availableYears" => $availableYears,
+                "latestYear" => $latestYear
+            ]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(["success" => false, "error" => $e->getMessage(), "results" => [], "availableYears" => [2026, 2025], "latestYear" => 2026]);
+        }
+        exit();
+    }
+
     $paperId = trim($_GET['paperId'] ?? $_GET['paper_uid'] ?? '');
     $indexNo = trim($_GET['indexNo'] ?? '');
 
@@ -110,9 +162,89 @@ if ($method === 'GET') {
     exit();
 }
 
-// 2. POST: Add single result or bulk results (only indexNo + part1 + part2 needed!)
+// 2. POST: Add single result or bulk results
 if ($method === 'POST') {
     $data = get_json_payload();
+    $targetType = trim($data['type'] ?? '');
+    $targetAction = trim($data['action'] ?? '');
+
+    // Handling National Results
+    if ($targetType === 'national' || strpos($targetAction, 'national') !== false) {
+        try {
+            // Bulk upload of national results
+            if (isset($data['results']) && is_array($data['results'])) {
+                $pdo->beginTransaction();
+                $inserted = 0;
+                $stmt = $pdo->prepare("INSERT INTO national_results (student_name, school, index_no, `year`, grade_badge, letter_grade, is_top_champion, quote, avatar_image)
+                    VALUES (:name, :school, :idx, :yr, :gb, :lg, :top, :quote, :img)
+                    ON DUPLICATE KEY UPDATE student_name = :u_name, school = :u_school, `year` = :u_yr, grade_badge = :u_gb, letter_grade = :u_lg, is_top_champion = :u_top, quote = :u_quote, avatar_image = :u_img");
+
+                foreach ($data['results'] as $r) {
+                    $idx = trim($r['indexNo'] ?? $r['index_no'] ?? '');
+                    $name = trim($r['name'] ?? $r['student_name'] ?? '');
+                    $school = trim($r['school'] ?? '');
+                    $year = isset($r['year']) ? (int)$r['year'] : 2025;
+                    $gb = trim($r['gradeBadge'] ?? $r['grade_badge'] ?? 'A9');
+                    $lg = trim($r['letterGrade'] ?? $r['letter_grade'] ?? 'A');
+                    $isTop = !empty($r['isTopChampion']) || !empty($r['is_top_champion']) ? 1 : 0;
+                    $quote = trim($r['quote'] ?? '');
+                    $img = trim($r['avatarImage'] ?? $r['avatar_image'] ?? '');
+
+                    if (empty($idx) || empty($name)) continue;
+
+                    $stmt->execute([
+                        'name' => $name, 'school' => $school, 'idx' => $idx, 'yr' => $year, 'gb' => $gb, 'lg' => $lg, 'top' => $isTop, 'quote' => $quote, 'img' => $img,
+                        'u_name' => $name, 'u_school' => $school, 'u_yr' => $year, 'u_gb' => $gb, 'u_lg' => $lg, 'u_top' => $isTop, 'u_quote' => $quote, 'u_img' => $img
+                    ]);
+                    $inserted++;
+                }
+                $pdo->commit();
+                echo json_encode(["success" => true, "count" => $inserted, "message" => "National results saved successfully."]);
+                exit();
+            }
+
+            // Single add or edit
+            $id = trim($data['id'] ?? '');
+            $idx = trim($data['indexNo'] ?? $data['index_no'] ?? '');
+            $name = trim($data['name'] ?? $data['student_name'] ?? '');
+            $school = trim($data['school'] ?? '');
+            $year = isset($data['year']) ? (int)$data['year'] : 2025;
+            $gb = trim($data['gradeBadge'] ?? $data['grade_badge'] ?? 'A9');
+            $lg = trim($data['letterGrade'] ?? $data['letter_grade'] ?? 'A');
+            $isTop = !empty($data['isTopChampion']) || !empty($data['is_top_champion']) ? 1 : 0;
+            $quote = trim($data['quote'] ?? '');
+            $img = trim($data['avatarImage'] ?? $data['avatar_image'] ?? '');
+
+            if (empty($name) || empty($idx)) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "error" => "Student name and Index number are required."]);
+                exit();
+            }
+
+            if (!empty($id) && is_numeric($id)) {
+                $updateStmt = $pdo->prepare("UPDATE national_results SET student_name = :name, school = :school, index_no = :idx, `year` = :yr, grade_badge = :gb, letter_grade = :lg, is_top_champion = :top, quote = :quote, avatar_image = :img WHERE id = :id");
+                $updateStmt->execute([
+                    'name' => $name, 'school' => $school, 'idx' => $idx, 'yr' => $year, 'gb' => $gb, 'lg' => $lg, 'top' => $isTop, 'quote' => $quote, 'img' => $img, 'id' => (int)$id
+                ]);
+                echo json_encode(["success" => true, "message" => "National result updated."]);
+            } else {
+                $insertStmt = $pdo->prepare("INSERT INTO national_results (student_name, school, index_no, `year`, grade_badge, letter_grade, is_top_champion, quote, avatar_image)
+                    VALUES (:name, :school, :idx, :yr, :gb, :lg, :top, :quote, :img)
+                    ON DUPLICATE KEY UPDATE student_name = :u_name, school = :u_school, `year` = :u_yr, grade_badge = :u_gb, letter_grade = :u_lg, is_top_champion = :u_top, quote = :u_quote, avatar_image = :u_img");
+                $insertStmt->execute([
+                    'name' => $name, 'school' => $school, 'idx' => $idx, 'yr' => $year, 'gb' => $gb, 'lg' => $lg, 'top' => $isTop, 'quote' => $quote, 'img' => $img,
+                    'u_name' => $name, 'u_school' => $school, 'u_yr' => $year, 'u_gb' => $gb, 'u_lg' => $lg, 'u_top' => $isTop, 'u_quote' => $quote, 'u_img' => $img
+                ]);
+                echo json_encode(["success" => true, "message" => "National result added."]);
+            }
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            http_response_code(500);
+            echo json_encode(["success" => false, "error" => $e->getMessage()]);
+        }
+        exit();
+    }
+
     $paperId = trim($data['paperId'] ?? $data['paper_uid'] ?? '');
     $uploadMode = trim($data['mode'] ?? 'append'); // 'append' or 'replace'
 
@@ -369,6 +501,7 @@ if ($method === 'POST') {
 if ($method === 'DELETE') {
     $id = trim($_GET['id'] ?? '');
     $paperId = trim($_GET['paperId'] ?? '');
+    $isNational = (($_GET['type'] ?? '') === 'national');
 
     if (empty($id)) {
         http_response_code(400);
@@ -377,6 +510,13 @@ if ($method === 'DELETE') {
     }
 
     try {
+        if ($isNational) {
+            $stmt = $pdo->prepare("DELETE FROM national_results WHERE id = :id OR index_no = :idx");
+            $stmt->execute(['id' => is_numeric($id) ? (int)$id : 0, 'idx' => $id]);
+            echo json_encode(["success" => true, "message" => "National result deleted."]);
+            exit();
+        }
+
         $stmt = $pdo->prepare("DELETE FROM paper_results WHERE result_uid = :id OR id = :id_num");
         $stmt->execute(['id' => $id, 'id_num' => is_numeric($id) ? (int)$id : 0]);
 

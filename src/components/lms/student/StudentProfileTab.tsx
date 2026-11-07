@@ -20,11 +20,17 @@ import {
   IdCard,
   QrCode,
   RotateCcw,
+  AlertCircle,
 } from "lucide-react";
 import { LMSUser } from "@/data/lmsData";
-import { updateLmsUser } from "@/lib/lmsStore";
+import { updateLmsUser, useLmsBatches } from "@/lib/lmsStore";
 import { printCredentialCardPdf } from "@/lib/pdfPrintService";
 import { compressImageFile } from "@/lib/imageCompressor";
+import {
+  validateFullName,
+  validateWhatsAppPhone,
+  validateParentPhone,
+} from "@/lib/validation";
 
 interface StudentProfileTabProps {
   currentUser: LMSUser;
@@ -33,10 +39,16 @@ interface StudentProfileTabProps {
 }
 
 const AVATAR_PRESETS = [
-  { id: "preset-1", label: "Top Student 1", url: "/images/top_student_rank1.jpg" },
-  { id: "preset-2", label: "Top Student 2", url: "/images/top_student_rank2.jpg" },
-  { id: "preset-3", label: "Top Student 3", url: "/images/top_student_rank3.jpg" },
-  { id: "preset-4", label: "Scholar", url: "/images/student1.jpg" },
+  { id: "cartoon-1", label: "Smart Scholar Boy", url: "/avatars/cartoon-boy-1.svg" },
+  { id: "cartoon-2", label: "Commerce Genius Girl", url: "/avatars/cartoon-girl-1.svg" },
+  { id: "cartoon-3", label: "Top Achiever Boy", url: "/avatars/cartoon-boy-2.svg" },
+  { id: "cartoon-4", label: "Academic Star Girl", url: "/avatars/cartoon-girl-2.svg" },
+  { id: "cartoon-5", label: "Distinction Graduate", url: "/avatars/cartoon-graduate.svg" },
+  { id: "cartoon-6", label: "9A Gold Champion", url: "/avatars/cartoon-champion.svg" },
+  { id: "cartoon-7", label: "Genius Idea Scholar", url: "/avatars/cartoon-genius.svg" },
+  { id: "cartoon-8", label: "Commerce Leader", url: "/avatars/cartoon-leader.svg" },
+  { id: "cartoon-11", label: "Cool Study Hacker", url: "/avatars/cartoon-cool-student.svg" },
+  { id: "cartoon-12", label: "Shining Commerce Star", url: "/avatars/cartoon-commerce-star.svg" },
 ];
 
 export default function StudentProfileTab({
@@ -44,6 +56,7 @@ export default function StudentProfileTab({
   onUpdatePassword,
   onUpdateUser,
 }: StudentProfileTabProps) {
+  const { batches: dbBatches } = useLmsBatches();
   // Editable fields state
   const [fullName, setFullName] = useState(currentUser.fullName || "");
   const [phone, setPhone] = useState(currentUser.phone || "");
@@ -54,6 +67,7 @@ export default function StudentProfileTab({
 
   // Feedback messages
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+  const [profileErrorMsg, setProfileErrorMsg] = useState("");
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState("");
   const [passwordErrorMsg, setPasswordErrorMsg] = useState("");
 
@@ -127,12 +141,33 @@ export default function StudentProfileTab({
   // Handle profile info update
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) return;
+    setProfileErrorMsg("");
+    setProfileSuccessMsg("");
+
+    const nameVal = validateFullName(fullName);
+    if (!nameVal.valid) {
+      setProfileErrorMsg(nameVal.error || "Please enter student's full name.");
+      return;
+    }
+
+    const phoneVal = validateWhatsAppPhone(phone);
+    if (!phoneVal.valid) {
+      setProfileErrorMsg(phoneVal.error || "Please enter a valid WhatsApp mobile number.");
+      return;
+    }
+
+    if (parentPhone.trim()) {
+      const parentVal = validateParentPhone(parentPhone);
+      if (!parentVal.valid) {
+        setProfileErrorMsg("Parent Contact: " + (parentVal.error || "Invalid phone number."));
+        return;
+      }
+    }
 
     const updated: LMSUser = {
       ...currentUser,
       fullName: fullName.trim(),
-      phone: phone.trim(),
+      phone: phoneVal.normalized || phone.trim(),
       parentPhone: parentPhone.trim(),
       school: school.trim(),
       batch: batch.trim(),
@@ -271,7 +306,7 @@ export default function StudentProfileTab({
             {/* Avatar Presets & Custom Upload Action Bar */}
             <div className="mt-5 pt-4 border-t border-[#cddce5]/60 flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <span className="text-[11px] font-bold text-[#60768a] mr-1">
-                Choose Photo:
+                Cartoon Avatars:
               </span>
               {AVATAR_PRESETS.map((preset) => (
                 <button
@@ -326,6 +361,14 @@ export default function StudentProfileTab({
         <div className="rounded-2xl border border-[#38d995] bg-[#e8f7f2] p-4 text-xs font-black text-[#159366] flex items-center gap-2 shadow-xs animate-[fadeIn_0.3s_ease-out]">
           <CheckCircle2 size={16} />
           <span>{profileSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Global Error Notification */}
+      {profileErrorMsg && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-black text-red-600 flex items-center gap-2 shadow-xs animate-[fadeIn_0.3s_ease-out]">
+          <AlertCircle size={16} className="shrink-0" />
+          <span>{profileErrorMsg}</span>
         </div>
       )}
 
@@ -556,15 +599,22 @@ export default function StudentProfileTab({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#102c45] mb-1.5">
-                    Target Batch
+                    Commerce Batch Enrolled
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={batch}
                     onChange={(e) => setBatch(e.target.value)}
-                    placeholder="Batch name"
-                    className="w-full rounded-2xl border border-[#cddce5] bg-[#edf2f3]/50 py-2.5 px-3.5 text-xs font-bold text-[#102c45] focus:bg-white focus:border-[#007fb8] focus:outline-none transition-colors"
-                  />
+                    className="w-full rounded-2xl border border-[#cddce5] bg-[#edf2f3]/50 py-2.5 px-3.5 text-xs font-bold text-[#102c45] focus:bg-white focus:border-[#007fb8] focus:outline-none transition-colors cursor-pointer"
+                  >
+                    {!dbBatches.includes(batch) && batch && (
+                      <option value={batch}>{batch} (Current)</option>
+                    )}
+                    {dbBatches.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

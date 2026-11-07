@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import {
   Trophy,
@@ -57,7 +57,7 @@ export default function AdminPapersTab({
 
   // Selected Exam
   const [selectedPaperId, setSelectedPaperId] = useState<string>(
-    papers[0]?.id || "paper-01"
+    papers[0]?.id || ""
   );
 
   // Search & Filtering
@@ -70,7 +70,7 @@ export default function AdminPapersTab({
 
   // Target paper for modals
   const [modalTargetPaperId, setModalTargetPaperId] = useState<string>(
-    papers[0]?.id || "paper-01"
+    papers[0]?.id || ""
   );
 
   // Manual Add Form State
@@ -114,28 +114,52 @@ export default function AdminPapersTab({
     setIsSyncingDb(true);
     setDbSyncMsg(null);
     try {
+      const synced = await syncPapersFromBackend();
+      setDbSyncMsg({
+        type: "success",
+        text: `Database synchronized! ${synced.length} exam papers loaded from MySQL database.`,
+      });
+      onRefresh?.();
+    } catch (err: unknown) {
+      setDbSyncMsg({
+        type: "error",
+        text: err instanceof Error ? err.message : "Error connecting to database backend.",
+      });
+    } finally {
+      setIsSyncingDb(false);
+      setTimeout(() => setDbSyncMsg(null), 8000);
+    }
+  };
+
+  const handleClearDatabase = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to completely clear the database and remove all sample papers, results, and student records? Only the administrator account will remain."
+      )
+    ) {
+      return;
+    }
+    setIsSyncingDb(true);
+    setDbSyncMsg(null);
+    try {
       const res = await seedDatabase();
       if (res.success) {
-        const counts = res.counts;
-        const countSummary = counts
-          ? `${counts.papers} Papers, ${counts.paper_results} Results, ${counts.users} Users saved in MySQL.`
-          : "";
         setDbSyncMsg({
           type: "success",
-          text: `Database synchronized successfully! ${countSummary}`,
+          text: "Database completely cleared! All sample papers, student marks, and mock data have been purged.",
         });
-        await syncPapersFromBackend();
+        setSelectedPaperId("");
         onRefresh?.();
       } else {
         setDbSyncMsg({
           type: "error",
-          text: res.message || "Failed to sync with MySQL database. Please ensure MySQL is running in XAMPP.",
+          text: res.message || "Failed to clear database.",
         });
       }
     } catch (err: unknown) {
       setDbSyncMsg({
         type: "error",
-        text: err instanceof Error ? err.message : "Error connecting to database backend.",
+        text: err instanceof Error ? err.message : "Error connecting to backend.",
       });
     } finally {
       setIsSyncingDb(false);
@@ -196,15 +220,13 @@ export default function AdminPapersTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // Reset page when filter or selected exam changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedScoreFilter, searchQuery, selectedPaperId]);
+  const totalPages = Math.max(1, Math.ceil(filteredResults.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
 
   const paginatedResults = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    const start = (safePage - 1) * pageSize;
     return filteredResults.slice(start, start + pageSize);
-  }, [filteredResults, currentPage, pageSize]);
+  }, [filteredResults, safePage, pageSize]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -709,7 +731,18 @@ export default function AdminPapersTab({
               className="inline-flex items-center gap-2 rounded-full border border-[#102c45]/30 bg-[#102c45]/5 px-3.5 py-2.5 text-xs font-black text-[#102c45] hover:bg-[#102c45] hover:text-white transition-all cursor-pointer shadow-2xs disabled:opacity-60"
             >
               <Database size={14} className={isSyncingDb ? "animate-spin text-[#007fb8]" : "text-[#007fb8]"} />
-              <span>{isSyncingDb ? "Syncing..." : "Sync DB (MySQL)"}</span>
+              <span>{isSyncingDb ? "Syncing..." : "Sync DB"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearDatabase}
+              disabled={isSyncingDb}
+              title="Completely clear all database tables and purge all sample mock data"
+              className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 hover:bg-red-600 hover:text-white px-3.5 py-2.5 text-xs font-black text-red-600 transition-all cursor-pointer shadow-2xs disabled:opacity-60"
+            >
+              <Trash2 size={13} />
+              <span>Clear Sample Data</span>
             </button>
           </div>
         </div>
@@ -919,8 +952,32 @@ export default function AdminPapersTab({
          ========================================================================= */}
       {viewMode === "leaderboard" && (
         <>
-          {/* EXAM SELECTOR DROPDOWN BAR */}
-          <div className="rounded-3xl border border-[#cddce5] bg-white p-4 sm:p-5 shadow-xs space-y-3.5">
+          {papers.length === 0 ? (
+            <div className="rounded-3xl border-2 border-dashed border-[#cddce5] bg-white p-12 text-center space-y-4 shadow-xs">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-[#edf2f3] text-[#007fb8]">
+                <FileText size={32} />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h3 className="text-lg font-black text-[#102c45]">
+                  No Exam Papers in Database
+                </h3>
+                <p className="text-xs text-[#60768a]">
+                  All sample mock papers and results have been removed. The database is clean and ready. Publish a new paper to add student marks.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenAddPaper}
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-5 py-2.5 text-xs font-black text-white shadow-md shadow-[#007fb8]/20 hover:scale-102 active:scale-95 transition-all cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>Publish New Paper</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* EXAM SELECTOR DROPDOWN BAR */}
+              <div className="rounded-3xl border border-[#cddce5] bg-white p-4 sm:p-5 shadow-xs space-y-3.5">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               {/* Dropdown Left side */}
               <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -1545,7 +1602,7 @@ export default function AdminPapersTab({
 
             {/* Table Pagination Footer */}
             <LmsPagination
-              currentPage={currentPage}
+              currentPage={safePage}
               totalItems={filteredResults.length}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
@@ -1557,6 +1614,8 @@ export default function AdminPapersTab({
               itemName="candidates evaluated"
             />
           </div>
+          </>
+          )}
         </>
       )}
 

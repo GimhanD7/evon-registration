@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   HelpCircle,
   Clock,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { LMSQuiz } from "@/data/lmsData";
 import QuizPlayer from "@/components/lms/student/QuizPlayer";
+import LmsPagination from "@/components/lms/shared/LmsPagination";
 
 interface StudentQuizzesTabProps {
   quizzes: LMSQuiz[];
@@ -30,6 +31,42 @@ export default function StudentQuizzesTab({
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "completed">("all");
   const [subjectFilter, setSubjectFilter] = useState("all");
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
+  // Filtered quizzes list
+  const filteredQuizzes = useMemo(() => {
+    return quizzes.filter((q) => {
+      const matchesSearch =
+        q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        q.batch.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "completed" && q.completed) ||
+        (statusFilter === "available" && !q.completed);
+
+      const matchesSubject =
+        subjectFilter === "all" ||
+        q.subject.toLowerCase() === subjectFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus && matchesSubject;
+    });
+  }, [quizzes, searchQuery, statusFilter, subjectFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredQuizzes.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedQuizzes = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredQuizzes.slice(start, start + pageSize);
+  }, [filteredQuizzes, safePage, pageSize]);
+
+  const completedCount = quizzes.filter((q) => q.completed).length;
+  const subjects = Array.from(new Set(quizzes.map((q) => q.subject)));
+
   if (activeQuiz) {
     return (
       <QuizPlayer
@@ -39,28 +76,6 @@ export default function StudentQuizzesTab({
       />
     );
   }
-
-  // Filtered quizzes list
-  const filteredQuizzes = quizzes.filter((q) => {
-    const matchesSearch =
-      q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.batch.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "completed" && q.completed) ||
-      (statusFilter === "available" && !q.completed);
-
-    const matchesSubject =
-      subjectFilter === "all" ||
-      q.subject.toLowerCase() === subjectFilter.toLowerCase();
-
-    return matchesSearch && matchesStatus && matchesSubject;
-  });
-
-  const completedCount = quizzes.filter((q) => q.completed).length;
-  const subjects = Array.from(new Set(quizzes.map((q) => q.subject)));
 
   return (
     <div className="space-y-6">
@@ -176,7 +191,7 @@ export default function StudentQuizzesTab({
             <p className="text-xs mt-1">Try adjusting your search filter or check back later.</p>
           </div>
         ) : (
-          filteredQuizzes.map((q) => {
+          paginatedQuizzes.map((q) => {
             const isCompleted = !!q.completed;
 
             return (
@@ -252,6 +267,24 @@ export default function StudentQuizzesTab({
           })
         )}
       </div>
+
+      {/* Student Quizzes Pagination */}
+      {filteredQuizzes.length > 0 && (
+        <div className="rounded-3xl border border-[#cddce5] bg-white p-4 shadow-xs">
+          <LmsPagination
+            currentPage={safePage}
+            totalItems={filteredQuizzes.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[6, 12, 24, 48]}
+            itemName="quizzes"
+          />
+        </div>
+      )}
     </div>
   );
 }

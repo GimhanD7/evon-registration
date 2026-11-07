@@ -31,9 +31,25 @@ export default function AdminEvaluationsTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const papers = useMemo(() => getLmsPapers(), []);
-  const quizzes = useMemo(() => getLmsQuizzes(), []);
-  const evaluations = useMemo(() => getLmsEvaluations(), []);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => setDataVersion((v) => v + 1);
+    window.addEventListener("lms_evaluations_change", handleUpdate);
+    window.addEventListener("lms_papers_change", handleUpdate);
+    window.addEventListener("lms_quizzes_change", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("lms_evaluations_change", handleUpdate);
+      window.removeEventListener("lms_papers_change", handleUpdate);
+      window.removeEventListener("lms_quizzes_change", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
+
+  const papers = useMemo(() => getLmsPapers(), [dataVersion]);
+  const quizzes = useMemo(() => getLmsQuizzes(), [dataVersion]);
+  const evaluations = useMemo(() => getLmsEvaluations(), [dataVersion]);
 
   const leaderboard = useMemo(() => {
     return calculateLeaderboard(students, papers, quizzes, evaluations);
@@ -50,15 +66,13 @@ export default function AdminEvaluationsTab({
     );
   }, [leaderboard, searchLeaderboard]);
 
-  // Reset page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchLeaderboard]);
+  const totalPages = Math.max(1, Math.ceil(filteredLeaderboard.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
 
   const paginatedLeaderboard = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    const start = (safePage - 1) * pageSize;
     return filteredLeaderboard.slice(start, start + pageSize);
-  }, [filteredLeaderboard, currentPage, pageSize]);
+  }, [filteredLeaderboard, safePage, pageSize]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,7 +286,7 @@ export default function AdminEvaluationsTab({
 
         {/* Leaderboard Pagination Bar */}
         <LmsPagination
-          currentPage={currentPage}
+          currentPage={safePage}
           totalItems={filteredLeaderboard.length}
           pageSize={pageSize}
           onPageChange={setCurrentPage}

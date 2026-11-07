@@ -1,16 +1,14 @@
 -- ========================================================
--- Evon Aravinda Commerce Education LMS Complete Database Seed
--- Database: evon_lms
+-- Evon Aravinda Commerce Education LMS Clean Database Setup
+-- Database: evon_lms (Local) / kasuormb_evon (Hosting)
+-- All mock/sample data removed - clean production state
 -- ========================================================
 
-CREATE DATABASE IF NOT EXISTS `evon_lms` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `evon_lms`;
-
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS `national_results`, `quiz_attempts`, `quiz_questions`, `evaluations`, `paper_results`, `quizzes`, `papers`, `users`;
+DROP TABLE IF EXISTS `app_settings`, `activity_logs`, `national_results`, `quiz_attempts`, `quiz_questions`, `evaluations`, `paper_results`, `quizzes`, `papers`, `users`, `batches`;
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 1. Create Tables
+-- 1. Users Table
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_uid` VARCHAR(64) NOT NULL UNIQUE,
@@ -31,6 +29,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   INDEX (`index_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 2. Papers / Exams Table
 CREATE TABLE IF NOT EXISTS `papers` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `paper_uid` VARCHAR(64) NOT NULL UNIQUE,
@@ -60,6 +59,7 @@ CREATE TABLE IF NOT EXISTS `papers` (
   INDEX (`batch`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 3. Paper Student Marks / Results Table
 CREATE TABLE IF NOT EXISTS `paper_results` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `result_uid` VARCHAR(64) NOT NULL UNIQUE,
@@ -79,21 +79,28 @@ CREATE TABLE IF NOT EXISTS `paper_results` (
   INDEX (`paper_uid`),
   INDEX (`index_no`),
   INDEX (`total_score`),
-  INDEX (`rank_in_class`)
+  INDEX (`rank_in_class`),
+  UNIQUE KEY `uq_paper_index` (`paper_uid`, `index_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 4. National Results Table (Island-wide O/L Top Ranks)
 CREATE TABLE IF NOT EXISTS `national_results` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `student_name` VARCHAR(150) NOT NULL,
   `school` VARCHAR(150) NOT NULL,
   `index_no` VARCHAR(50) NOT NULL UNIQUE,
+  `year` INT DEFAULT 2025,
   `grade_badge` VARCHAR(10) NOT NULL,
   `letter_grade` VARCHAR(5) NOT NULL,
   `is_top_champion` TINYINT(1) DEFAULT 0,
+  `quote` TEXT DEFAULT NULL,
+  `avatar_image` VARCHAR(255) DEFAULT NULL,
   INDEX (`index_no`),
+  INDEX (`year`),
   INDEX (`grade_badge`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 5. Quizzes Table
 CREATE TABLE IF NOT EXISTS `quizzes` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `quiz_uid` VARCHAR(64) NOT NULL UNIQUE,
@@ -104,16 +111,18 @@ CREATE TABLE IF NOT EXISTS `quizzes` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 6. Quiz Questions Table
 CREATE TABLE IF NOT EXISTS `quiz_questions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `quiz_uid` VARCHAR(64) NOT NULL,
   `question_text` TEXT NOT NULL,
   `options_json` TEXT NOT NULL,
-  `correct_answer` TINYINT NOT NULL,
+  `correct_answer` TINYINT NOT NULL COMMENT '0=A, 1=B, 2=C, 3=D',
   `explanation` TEXT DEFAULT NULL,
   INDEX (`quiz_uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 7. Quiz Attempts Table
 CREATE TABLE IF NOT EXISTS `quiz_attempts` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `quiz_uid` VARCHAR(64) NOT NULL,
@@ -125,6 +134,7 @@ CREATE TABLE IF NOT EXISTS `quiz_attempts` (
   INDEX (`user_uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 8. Student Evaluations Table
 CREATE TABLE IF NOT EXISTS `evaluations` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `evaluation_uid` VARCHAR(64) NOT NULL UNIQUE,
@@ -141,483 +151,231 @@ CREATE TABLE IF NOT EXISTS `evaluations` (
   INDEX (`student_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 9. Batches Table
+CREATE TABLE IF NOT EXISTS `batches` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(150) NOT NULL UNIQUE,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 10. Activity Logs Table
+CREATE TABLE IF NOT EXISTS `activity_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `log_uid` VARCHAR(64) NOT NULL UNIQUE,
+  `user_id` VARCHAR(64) DEFAULT 'guest',
+  `user_name` VARCHAR(150) NOT NULL DEFAULT 'Anonymous User',
+  `user_role` VARCHAR(50) NOT NULL DEFAULT 'student',
+  `action` VARCHAR(255) NOT NULL,
+  `category` VARCHAR(50) NOT NULL DEFAULT 'system',
+  `details` TEXT DEFAULT NULL,
+  `ip_address` VARCHAR(100) DEFAULT NULL,
+  `device` VARCHAR(255) DEFAULT NULL,
+  `status` ENUM('success', 'warning', 'info') NOT NULL DEFAULT 'info',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`user_id`),
+  INDEX (`category`),
+  INDEX (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 11. App Settings Table (Stores System Config & Security PIN)
+CREATE TABLE IF NOT EXISTS `app_settings` (
+  `setting_key` VARCHAR(64) PRIMARY KEY,
+  `setting_value` TEXT NOT NULL,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `app_settings` (`setting_key`, `setting_value`)
+VALUES ('security_pin', '1234')
+ON DUPLICATE KEY UPDATE `setting_key`=`setting_key`;
+
 -- ========================================================
--- Insert Records
+-- Root Educator / Admin Account (Production Credentials)
 -- ========================================================
-
--- 2. Insert Users (173 accounts)
 INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `index_no`, `batch`, `school`, `parent_phone`, `avatar_url`, `enrolled_date`, `status`)
 VALUES
-('admin-01', 'Evon Aravinda (Lead Educator & Admin)', '0719998877', 'admin123', 'admin', NULL, 'All Batches', 'Main Faculty', NULL, '/images/educator.jpg', '2024-01-01', 'active'),
-('std-001', 'Senuri Fernando', '0771234567', 'pass123', 'student', '53914864', '2026 O/L Speed Revision & Paper Class', 'Visakha Vidyalaya, Colombo', '0777654321', '/images/top_student_rank1.jpg', '2025-01-10', 'active'),
-('std-002', 'Kavindu Wickramasinghe', '0712345678', 'pass123', 'student', '53914865', '2026 O/L Speed Revision & Paper Class', 'Dharmaraja College, Kandy', '0717654321', '/images/top_student_rank2.jpg', '2025-01-15', 'active'),
-('std-003', 'Dinithi Jayasuriya', '0783456789', 'pass123', 'student', '53914866', '2027 O/L Commerce Foundation', 'Devi Balika Vidyalaya, Colombo', '0787654321', NULL, '2025-02-01', 'active'),
-('std-004', 'Sachithra Weerasinghe', '0754567890', 'pass123', 'student', '53914867', '2026 O/L Speed Revision & Paper Class', 'Ananda College, Colombo', '0757654321', NULL, '2025-01-12', 'active'),
-('std-53884191', 'Linuka Damsanda', '0714601944', 'pass123', 'student', '53884191', '2026 O/L Paper Class', 'Bandaranayake College, Gampaha', NULL, NULL, '2025-01-15', 'active'),
-('superadmin-01', 'Evon Aravinda (Super Admin)', '0710000000', 'pass123', 'admin', NULL, '2026 O/L Paper Class', 'Commerce Faculty', NULL, NULL, '2025-01-15', 'active'),
-('std-53560574', 'Yashodhini Vihara', '0771256154', 'pass123', 'student', '53560574', '2025 O/L Speed Revision', 'Devi Balika Vidyalaya, Colombo', NULL, '/images/top_student_rank1.jpg', '2025-01-10', 'active'),
-('std-53519028', 'Hasal Samaranayake', '0779484716', 'pass123', 'student', '53519028', '2025 O/L Speed Revision', 'Ananda College, Colombo', NULL, '/images/top_student_rank2.jpg', '2025-01-10', 'active'),
-('std-53914473', 'Vidun Wickramasinghe', '0737064520', 'pass123', 'student', '53914473', '2025 O/L Speed Revision', 'Sumedha College, Gampaha', NULL, '/images/top_student_rank3.jpg', '2025-01-10', 'active'),
-('std-53511450', 'Akithra Induwari', '0783854457', 'pass123', 'student', '53511450', '2025 O/L Speed Revision', 'Ananda Balika Vidyalaya, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-54054133', 'Senal Rajapakse', '0731100119', 'pass123', 'student', '54054133', '2025 O/L Speed Revision', 'Sussex College, Kiribathgoda', NULL, NULL, '2025-01-10', 'active'),
-('std-53884477', 'Shehan Rashmitha', '0796663590', 'pass123', 'student', '53884477', '2025 O/L Speed Revision', 'Bandaranayake College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53582012', 'Deneth Nimtharu', '0766035963', 'pass123', 'student', '53582012', '2025 O/L Speed Revision', 'Thurstan College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-54068177', 'Sethmi Thehasna', '0797218555', 'pass123', 'student', '54068177', '2025 O/L Speed Revision', 'Viharamahadevi Balika, Kiribathgoda', NULL, NULL, '2025-01-10', 'active'),
-('std-53560841', 'Danuli De Silva', '0774825117', 'pass123', 'student', '53560841', '2025 O/L Speed Revision', 'Devi Balika Vidyalaya, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53494296', 'Kevin Adrian', '0744704256', 'pass123', 'student', '53494296', '2025 O/L Speed Revision', 'St. Joseph\'s College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-54271010', 'Kulitha Ranudaya', '0759882514', 'pass123', 'student', '54271010', '2025 O/L Speed Revision', 'Britishway International, Nittambuwa', NULL, NULL, '2025-01-10', 'active'),
-('std-54068231', 'Minradha Ranasinghe', '0714417597', 'pass123', 'student', '54068231', '2025 O/L Speed Revision', 'Viharamahadevi Balika, Kiribathgoda', NULL, NULL, '2025-01-10', 'active'),
-('std-53494644', 'Kisal Weerakone', '0794418714', 'pass123', 'student', '53494644', '2025 O/L Speed Revision', 'St. Joseph\'s College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-54052360', 'Ovini Nithasha', '0714036026', 'pass123', 'student', '54052360', '2025 O/L Speed Revision', 'Mahamaya Girls College, Kadawatha', NULL, NULL, '2025-01-10', 'active'),
-('std-53530357', 'Chanuga Walpola', '0784349548', 'pass123', 'student', '53530357', '2025 O/L Speed Revision', 'Nalanda College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53883616', 'Miyuru Vishwajith', '0734323050', 'pass123', 'student', '53883616', '2025 O/L Speed Revision', 'Bandaranayake College, Gampaha', NULL, '/images/top_student_rank1.jpg', '2025-01-10', 'active'),
-('std-53506189', 'Ehansa Kurukulasuriya', '0766927517', 'pass123', 'student', '53506189', '2025 O/L Speed Revision', 'Bishops College, Colombo', NULL, '/images/top_student_rank2.jpg', '2025-01-10', 'active'),
-('std-53883918', 'Pesandu Lukdiw', '0714216056', 'pass123', 'student', '53883918', '2025 O/L Speed Revision', 'Bandaranayake College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-25047936', 'Denith Manthuja', '0741720843', 'pass123', 'student', '25047936', '2025 O/L Speed Revision', 'St. Joseph\'s College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53554396', 'Hesali Alwis', '0729165267', 'pass123', 'student', '53554396', '2025 O/L Speed Revision', 'Musaeus College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53524330', 'Duveesha Amarasinghe', '0710458769', 'pass123', 'student', '53524330', '2025 O/L Speed Revision', 'Gothami Balika Vidyalaya, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53586301', 'Kavi Rivisahan', '0749022808', 'pass123', 'student', '53586301', '2025 O/L Speed Revision', 'Mahanama College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53891015', 'Chathuni Jayasinghe', '0732242125', 'pass123', 'student', '53891015', '2025 O/L Speed Revision', 'Holy Cross College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-54001650', 'Sandesh Ayodhya', '0770569697', 'pass123', 'student', '54001650', '2025 O/L Speed Revision', 'Karunarathna Buddhist College', NULL, NULL, '2025-01-10', 'active'),
-('std-53936671', 'Disas Harshana', '0716809737', 'pass123', 'student', '53936671', '2025 O/L Speed Revision', 'Bandaranayake Central College, Veyangoda', NULL, '/images/top_student_rank2.jpg', '2025-01-10', 'active'),
-('std-53883780', 'Damithu Thenujaya', '0785896981', 'pass123', 'student', '53883780', '2025 O/L Speed Revision', 'Bandaranayake College, Gampaha', NULL, '/images/top_student_rank1.jpg', '2025-01-10', 'active'),
-('std-53523938', 'W.W.M. Panchanga', '0755673763', 'pass123', 'student', '53523938', '2025 O/L Speed Revision', 'Asoka College, Colombo 10', NULL, '/images/top_student_rank3.jpg', '2025-01-10', 'active'),
-('std-53936817', 'Desandi Thinara', '0766566060', 'pass123', 'student', '53936817', '2025 O/L Speed Revision', 'Bandaranayake Central College, Veyangoda', NULL, NULL, '2025-01-10', 'active'),
-('std-54067928', 'Sawani Pamalya', '0747090200', 'pass123', 'student', '54067928', '2025 O/L Speed Revision', 'Viharamahadevi Balika Vidyalaya', NULL, NULL, '2025-01-10', 'active'),
-('std-54068363', 'Yoshini Mihindi', '0742118150', 'pass123', 'student', '54068363', '2025 O/L Speed Revision', 'Viharamahadevi Balika Vidyalaya', NULL, NULL, '2025-01-10', 'active'),
-('std-53912209', 'Malki Nimthara', '0787330649', 'pass123', 'student', '53912209', '2025 O/L Speed Revision', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2025-01-10', 'active'),
-('std-53912560', 'Inudi Hesansa', '0767332208', 'pass123', 'student', '53912560', '2025 O/L Speed Revision', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2025-01-10', 'active'),
-('std-53605900', 'Geehara Anusari', '0734544317', 'pass123', 'student', '53605900', '2025 O/L Speed Revision', 'Sirimavo Bandaranaike Vidyalaya', NULL, NULL, '2025-01-10', 'active'),
-('std-53914708', 'Vinudi Dahamila', '0728388343', 'pass123', 'student', '53914708', '2025 O/L Speed Revision', 'Sumedha College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53884485', 'Vidath Damsara', '0750015093', 'pass123', 'student', '53884485', '2026 O/L Paper Class', 'Bandaranayake College, Gampaha', NULL, '/images/top_student_rank2.jpg', '2025-01-10', 'active'),
-('std-53912470', 'Devangi Amarasinghe', '0745859752', 'pass123', 'student', '53912470', '2026 O/L Paper Class', 'Yasodara Devi Balika Vidyalaya', NULL, '/images/top_student_rank3.jpg', '2025-01-10', 'active'),
-('std-53884493', 'Senuth Dinsara', '0743689996', 'pass123', 'student', '53884493', '2026 O/L Paper Class', 'Bandaranayake College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53923324', 'Maheema Sithumini', '0763137153', 'pass123', 'student', '53923324', '2026 O/L Paper Class', 'Rathnavali Balika Vidyalaya, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53923383', 'Gehara Dharmasri', '0760474509', 'pass123', 'student', '53923383', '2026 O/L Paper Class', 'Rathnavali Balika Vidyalaya, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53553250', 'Nethuki Lehansa', '0730944223', 'pass123', 'student', '53553250', '2026 O/L Paper Class', 'Musaeus College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53890949', 'Adhithi Alwis', '0762391075', 'pass123', 'student', '53890949', '2026 O/L Paper Class', 'Holy Cross College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53890744', 'Nevinka Fernando', '0766144677', 'pass123', 'student', '53890744', '2026 O/L Paper Class', 'Holy Cross College, Gampaha', NULL, NULL, '2025-01-10', 'active'),
-('std-53891040', 'Dulithi Nevithma', '0723270928', 'pass123', 'student', '53891040', '2026 O/L Paper Class', 'Holy Cross College, Gampaha', NULL, NULL, '2025-01-10', 'active')
-ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`), `role`=VALUES(`role`), `index_no`=VALUES(`index_no`), `school`=VALUES(`school`);
-INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `index_no`, `batch`, `school`, `parent_phone`, `avatar_url`, `enrolled_date`, `status`)
-VALUES
-('std-53553290', 'Kumali Herath', '0782188592', 'pass123', 'student', '53553290', '2026 O/L Paper Class', 'Musaeus College, Colombo', NULL, NULL, '2025-01-10', 'active'),
-('std-53961463', 'Virajitha Nitheesh', '0715810790', 'pass123', 'student', '53961463', '2026 O/L Paper Class', 'Negombo South International School', NULL, NULL, '2025-01-10', 'active'),
-('std-54085470', 'Buthsara Dinumuthu', '0760607815', 'pass123', 'student', '54085470', '2026 O/L Paper Class', 'Gurukula College, Kelaniya', NULL, NULL, '2025-01-10', 'active'),
-('std-54086736', 'Kajini Kashmira', '0771947571', 'pass123', 'student', '54086736', '2026 O/L Paper Class', 'Gurukula College, Kelaniya', NULL, NULL, '2025-01-10', 'active'),
-('std-53961480', 'Minoli Sadithma', '0743987862', 'pass123', 'student', '53961480', '2026 O/L Paper Class', 'Negombo South International School', NULL, NULL, '2025-01-10', 'active'),
-('std-53734017', 'Mihindi Dias', '0786837531', 'pass123', 'student', '53734017', 'National O/L Commerce Alumni', 'Yoshida Shokanji International', NULL, NULL, '2024-01-10', 'active'),
-('std-54085411', 'Sasika Tharupathi', '0745066201', 'pass123', 'student', '54085411', 'National O/L Commerce Alumni', 'Gurukula College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53518578', 'Yasith Gunathilake', '0739774450', 'pass123', 'student', '53518578', 'National O/L Commerce Alumni', 'Ananda College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53519930', 'Sinura Vidun', '0755846459', 'pass123', 'student', '53519930', 'National O/L Commerce Alumni', 'Ananda College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53523830', 'Nethaka Vinsith', '0738180516', 'pass123', 'student', '53523830', 'National O/L Commerce Alumni', 'Asoka College, Colombo 10', NULL, NULL, '2024-01-10', 'active'),
-('std-54085519', 'Dulmika Ransen', '0798010371', 'pass123', 'student', '54085519', 'National O/L Commerce Alumni', 'Gurukula College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-54085373', 'Isindu Kethmin', '0778564455', 'pass123', 'student', '54085373', 'National O/L Commerce Alumni', 'Gurukula College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53890884', 'Amasha Fernando', '0754733799', 'pass123', 'student', '53890884', 'National O/L Commerce Alumni', 'Holy Cross College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54096332', 'H.M.N. Ahasna', '0776427738', 'pass123', 'student', '54096332', 'National O/L Commerce Alumni', 'Lyceum International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54052432', 'Oneli Lithasha', '0788005065', 'pass123', 'student', '54052432', 'National O/L Commerce Alumni', 'Mahamaya Girls College, Kadawatha', NULL, NULL, '2024-01-10', 'active'),
-('std-53586603', 'Jayith Sandira', '0726535403', 'pass123', 'student', '53586603', 'National O/L Commerce Alumni', 'Mahanama College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53586638', 'Nisira Nimsara', '0723685787', 'pass123', 'student', '53586638', 'National O/L Commerce Alumni', 'Mahanama College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53554647', 'Kusalya Indrawansa', '0778035291', 'pass123', 'student', '53554647', 'National O/L Commerce Alumni', 'Musaeus College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53554507', 'Piyumali Jayasinghe', '0750771800', 'pass123', 'student', '53554507', 'National O/L Commerce Alumni', 'Musaeus College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-54032075', 'Shehara Dewwini', '0759901429', 'pass123', 'student', '54032075', 'National O/L Commerce Alumni', 'OKI International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53923057', 'Shwetha Amashi', '0759177663', 'pass123', 'student', '53923057', 'National O/L Commerce Alumni', 'Rathnavali Balika Vidyalaya, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54600541', 'Sanuka Devnija', '0743605175', 'pass123', 'student', '54600541', 'National O/L Commerce Alumni', 'S. Thomas\' Preparatory School, Kollupitiya', NULL, NULL, '2024-01-10', 'active'),
-('std-54074177', 'Anushari Keshangi', '0795576717', 'pass123', 'student', '54074177', 'National O/L Commerce Alumni', 'Sapugaskanda Vishaka Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53494954', 'Kris Fernando', '0789242521', 'pass123', 'student', '53494954', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-54017343', 'Nadeeja Oshada', '0783149544', 'pass123', 'student', '54017343', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-53914589', 'Ramika Dharmawardana', '0728226951', 'pass123', 'student', '53914589', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914775', 'Mahimi Theersha', '0745710003', 'pass123', 'student', '53914775', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914554', 'Osanda Dinsara', '0722501727', 'pass123', 'student', '53914554', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914660', 'Gihansa Ranumi', '0752198199', 'pass123', 'student', '53914660', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914805', 'Sanuki Sanulya', '0779260919', 'pass123', 'student', '53914805', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914546', 'Sajana Insara', '0738210261', 'pass123', 'student', '53914546', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54051525', 'Thehan Nimsara', '0754415116', 'pass123', 'student', '54051525', 'National O/L Commerce Alumni', 'Sussex College, Kiribathgoda', NULL, NULL, '2024-01-10', 'active'),
-('std-53581997', 'Vihanga Bandara', '0715030484', 'pass123', 'student', '53581997', 'National O/L Commerce Alumni', 'Thurstan College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-54067901', 'Senuthi Udhamsa', '0756745430', 'pass123', 'student', '54067901', 'National O/L Commerce Alumni', 'Viharamahadevi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54074452', 'Siluni Himandee', '0741836338', 'pass123', 'student', '54074452', 'National O/L Commerce Alumni', 'Vishaka Balika Vidyalaya, Sapugaskanda', NULL, NULL, '2024-01-10', 'active'),
-('std-53912217', 'Supipi Vidarshana', '0773594665', 'pass123', 'student', '53912217', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53911172', 'Ashvini Deeshana', '0762558706', 'pass123', 'student', '53911172', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54036330', 'Mahith Shervin', '0715921826', 'pass123', 'student', '54036330', 'National O/L Commerce Alumni', 'York International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54036283', 'Mathista Prabashwara', '0749188199', 'pass123', 'student', '54036283', 'National O/L Commerce Alumni', 'York International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54096731', 'Daham Iroshana', '0721634954', 'pass123', 'student', '54096731', 'National O/L Commerce Alumni', 'Yoshida Shokanji International', NULL, NULL, '2024-01-10', 'active'),
-('std-53556216', 'Chithira Thilakaweera', '0726705960', 'pass123', 'student', '53556216', 'National O/L Commerce Alumni', 'D.S. Senanayake College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53912667', 'Adeesha Nimsarani', '0740325316', 'pass123', 'student', '53912667', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53890922', 'Nadinsa Wickramasingha', '0771463933', 'pass123', 'student', '53890922', 'National O/L Commerce Alumni', 'Holy Cross College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53603222', 'Methushi Bopearatchy', '0734854365', 'pass123', 'student', '53603222', 'National O/L Commerce Alumni', 'Holy Family Convent, Bambalapitiya', NULL, NULL, '2024-01-10', 'active'),
-('std-53920538', 'Mihin Gulawita', '0732761651', 'pass123', 'student', '53920538', 'National O/L Commerce Alumni', 'Lyceum International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53586565', 'Imira Sethmika', '0736391266', 'pass123', 'student', '53586565', 'National O/L Commerce Alumni', 'Mahanama College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53553810', 'Risindi Nethsandi', '0742443553', 'pass123', 'student', '53553810', 'National O/L Commerce Alumni', 'Musaeus College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-54074150', 'Lohansa Natharie', '0739838301', 'pass123', 'student', '54074150', 'National O/L Commerce Alumni', 'Sapugaskanda Vishaka Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54091250', 'Kaveesha Ranindu', '0733447992', 'pass123', 'student', '54091250', 'National O/L Commerce Alumni', 'Sri Dharmaloka College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53951360', 'Sithuki Nelithma', '0726992922', 'pass123', 'student', '53951360', 'National O/L Commerce Alumni', 'Sri Sanghabodhi National School', NULL, NULL, '2024-01-10', 'active')
-ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`), `role`=VALUES(`role`), `index_no`=VALUES(`index_no`), `school`=VALUES(`school`);
-INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `index_no`, `batch`, `school`, `parent_phone`, `avatar_url`, `enrolled_date`, `status`)
-VALUES
-('std-53951280', 'N.L.D. Thilakarathne', '0751879228', 'pass123', 'student', '53951280', 'National O/L Commerce Alumni', 'Sri Sanghabodhi National School', NULL, NULL, '2024-01-10', 'active'),
-('std-5401731', 'Pawara Nethsilu', '0742958760', 'pass123', 'student', '5401731', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-54017262', 'Abheetha Basuru', '0793256301', 'pass123', 'student', '54017262', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-53914228', 'Kaveesha Manasith', '0723333320', 'pass123', 'student', '53914228', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914961', 'Hiruka Randiew', '0757031272', 'pass123', 'student', '53914961', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53891791', 'Yehara Sinadi', '0768723941', 'pass123', 'student', '53891791', 'National O/L Commerce Alumni', 'Thakshila College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53891554', 'Rusandu Thanuwara', '0795987928', 'pass123', 'student', '53891554', 'National O/L Commerce Alumni', 'Thakshila College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54074363', 'Jayali Sandareka', '0751620740', 'pass123', 'student', '54074363', 'National O/L Commerce Alumni', 'Vishaka Balika Vidyalaya, Sapugaskanda', NULL, NULL, '2024-01-10', 'active'),
-('std-54074215', 'Sanulya Ransadee', '0731253649', 'pass123', 'student', '54074215', 'National O/L Commerce Alumni', 'Vishaka Balika Vidyalaya, Sapugaskanda', NULL, NULL, '2024-01-10', 'active'),
-('std-53547616', 'Thinuga Gunawardana', '0719494207', 'pass123', 'student', '53547616', 'National O/L Commerce Alumni', 'Wesley College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53912764', 'Nethuli Nuhansa', '0735275511', 'pass123', 'student', '53912764', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54074371', 'Dulansa Sayumdi', '0739285849', 'pass123', 'student', '54074371', 'National O/L Commerce Alumni', 'Vishaka Balika Vidyalaya, Sapugaskanda', NULL, NULL, '2024-01-10', 'active'),
-('std-53912233', 'Thiseni Yohansa', '0728841929', 'pass123', 'student', '53912233', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54074347', 'Jethmi Sethumya', '0768742735', 'pass123', 'student', '54074347', 'National O/L Commerce Alumni', 'Vishaka Balika Vidyalaya, Sapugaskanda', NULL, NULL, '2024-01-10', 'active'),
-('std-53884531', 'Shanuka Nethsara', '0752559199', 'pass123', 'student', '53884531', 'National O/L Commerce Alumni', 'Bandaranayake College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54012180', 'Fahad Feroz', '0779620662', 'pass123', 'student', '54012180', 'National O/L Commerce Alumni', 'St. Anthony\'s College, Wattala', NULL, NULL, '2024-01-10', 'active'),
-('std-24782', 'Sandabomi Bandara', '0769419578', 'pass123', 'student', '24782', 'National O/L Commerce Alumni', 'Sri Dharmaloka College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-54096952', 'Pratibha Kataria', '0754397404', 'pass123', 'student', '54096952', 'National O/L Commerce Alumni', 'Yoshida Shokanji International', NULL, NULL, '2024-01-10', 'active'),
-('std-53889100', 'Senuli U. Perera', '0737122697', 'pass123', 'student', '53889100', 'National O/L Commerce Alumni', 'Holy Cross College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53928300', 'Ganguni Thisarani', '0789990948', 'pass123', 'student', '53928300', 'National O/L Commerce Alumni', 'Galahitiyawa Central College', NULL, NULL, '2024-01-10', 'active'),
-('std-54053951', 'Akil Kameor', '0722611355', 'pass123', 'student', '54053951', 'National O/L Commerce Alumni', 'Sussex College, Kiribathgoda', NULL, NULL, '2024-01-10', 'active'),
-('std-54096987', 'Nisalnee Samarasingha', '0752185726', 'pass123', 'student', '54096987', 'National O/L Commerce Alumni', 'Yoshida Shokanji International', NULL, NULL, '2024-01-10', 'active'),
-('std-53891570', 'Janindu Wathsara', '0766882743', 'pass123', 'student', '53891570', 'National O/L Commerce Alumni', 'Thakshila College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-200938', 'Mihin Hewananyake', '0752572790', 'pass123', 'student', '200938', 'National O/L Commerce Alumni', 'Sri Dharmaloka College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53941446', 'Lithiru Ravina', '0782187021', 'pass123', 'student', '53941446', 'National O/L Commerce Alumni', 'St. Mary\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-54054231', 'Sachinth Himanga', '0779224343', 'pass123', 'student', '54054231', 'National O/L Commerce Alumni', 'Lyceum International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53547659', 'Ninada Edirisinghe', '0798374784', 'pass123', 'student', '53547659', 'National O/L Commerce Alumni', 'Wesley College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-54046394', 'Leena Sadath', '0757870529', 'pass123', 'student', '54046394', 'National O/L Commerce Alumni', 'J.M.C International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54072441', 'Methuni Sandesna', '0752919593', 'pass123', 'student', '54072441', 'National O/L Commerce Alumni', 'Sapugaskanda Maha Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53530411', 'Pansiu Reshan', '0763273406', 'pass123', 'student', '53530411', 'National O/L Commerce Alumni', 'Nalanda College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-54032040', 'Dinuli Kumarage', '0739722821', 'pass123', 'student', '54032040', 'National O/L Commerce Alumni', 'OKI International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54008808', 'Vihara Diyamanti', '0748177540', 'pass123', 'student', '54008808', 'National O/L Commerce Alumni', 'St. Anne\'s Balika Maha Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54068266', 'Esandi Bimansa', '0794487946', 'pass123', 'student', '54068266', 'National O/L Commerce Alumni', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', NULL, NULL, '2024-01-10', 'active'),
-('std-54195071', 'Mesandi Methma', '0762961926', 'pass123', 'student', '54195071', 'National O/L Commerce Alumni', 'Lyceum International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54085560', 'Pathum Samuditha', '0785026275', 'pass123', 'student', '54085560', 'National O/L Commerce Alumni', 'Gurukula College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53530195', 'Sanitha Sandil', '0752510225', 'pass123', 'student', '53530195', 'National O/L Commerce Alumni', 'Nalanda College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53995325', 'Sayumi Maninsa', '0757474146', 'pass123', 'student', '53995325', 'National O/L Commerce Alumni', 'Private Candidate', NULL, NULL, '2024-01-10', 'active'),
-('std-53494504', 'Senula Randunu', '0753899935', 'pass123', 'student', '53494504', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-53914880', 'Nethasha Methmali', '0773721790', 'pass123', 'student', '53914880', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54068010', 'Dahamika Thisarani', '0765607754', 'pass123', 'student', '54068010', 'National O/L Commerce Alumni', 'Viharamahadevi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54091349', 'Dewandi Nuwangana', '0729220893', 'pass123', 'student', '54091349', 'National O/L Commerce Alumni', 'Sri Dharmaloka College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53915453', 'Vishmie Konara', '0747561512', 'pass123', 'student', '53915453', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914767', 'Kavithma Vehangee', '0771706900', 'pass123', 'student', '53914767', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53914651', 'Dewli Yuhansa', '0745351189', 'pass123', 'student', '53914651', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53912101', 'Sethumi Rajapaksha', '0766715829', 'pass123', 'student', '53912101', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53494571', 'Lineth Jayasinghe', '0712288683', 'pass123', 'student', '53494571', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-54085438', 'Monish Dewmina', '0717426475', 'pass123', 'student', '54085438', 'National O/L Commerce Alumni', 'Gurukula College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-53565452', 'Sewmi Dahamsha', '0770755303', 'pass123', 'student', '53565452', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53947509', 'Sethuli Wickramasinghe', '0750832199', 'pass123', 'student', '53947509', 'National O/L Commerce Alumni', 'Lyceum International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53915712', 'Thinuka Sasvidu', '0785981112', 'pass123', 'student', '53915712', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active')
-ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`), `role`=VALUES(`role`), `index_no`=VALUES(`index_no`), `school`=VALUES(`school`);
-INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `index_no`, `batch`, `school`, `parent_phone`, `avatar_url`, `enrolled_date`, `status`)
-VALUES
-('std-54043042', 'Jalani Bhashitha', '0764555532', 'pass123', 'student', '54043042', 'National O/L Commerce Alumni', 'Doranagoda National School', NULL, NULL, '2024-01-10', 'active'),
-('std-54008697', 'Savani Sithumini', '0730327802', 'pass123', 'student', '54008697', 'National O/L Commerce Alumni', 'St. Joseph\'s College', NULL, NULL, '2024-01-10', 'active'),
-('std-54096944', 'Sethuni Thihansa', '0740094889', 'pass123', 'student', '54096944', 'National O/L Commerce Alumni', 'Yoshida Shokanji International', NULL, NULL, '2024-01-10', 'active'),
-('std-53518730', 'Imeth Pehesara', '0798305032', 'pass123', 'student', '53518730', 'National O/L Commerce Alumni', 'Ananda College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-53615158', 'Sanhith Koralagamage', '0791612864', 'pass123', 'student', '53615158', 'National O/L Commerce Alumni', 'St. Peter\'s College, Colombo', NULL, NULL, '2024-01-10', 'active'),
-('std-54054362', 'Nethmitha Chanula', '0792191434', 'pass123', 'student', '54054362', 'National O/L Commerce Alumni', 'Lyceum International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53914139', 'Niranjan Dhilusan', '0770134768', 'pass123', 'student', '53914139', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-25100', 'Hasini Madushani', '0790970532', 'pass123', 'student', '25100', 'National O/L Commerce Alumni', 'Vishaka Balika Vidyalaya, Sapugaskanda', NULL, NULL, '2024-01-10', 'active'),
-('std-53961520', 'Dilru Thehansa', '0738839595', 'pass123', 'student', '53961520', 'National O/L Commerce Alumni', 'Negombo South International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53890302', 'Rochelle Andrea', '0739988629', 'pass123', 'student', '53890302', 'National O/L Commerce Alumni', 'Holy Cross College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-53521400', 'Sanketh Samarasinghe', '0759873268', 'pass123', 'student', '53521400', 'National O/L Commerce Alumni', 'Royal College, Colombo 7', NULL, NULL, '2024-01-10', 'active'),
-('std-53914368', 'Ranudi Nihansa', '0736814822', 'pass123', 'student', '53914368', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54012155', 'Sanchitha Ranuga', '0791053053', 'pass123', 'student', '54012155', 'National O/L Commerce Alumni', 'St. Anthony\'s College, Wattala', NULL, NULL, '2024-01-10', 'active'),
-('std-54054214', 'Lison Helitha', '0789441873', 'pass123', 'student', '54054214', 'National O/L Commerce Alumni', 'York International School', NULL, NULL, '2024-01-10', 'active'),
-('std-53565304', 'Vihansa Dinithi', '0791952921', 'pass123', 'student', '53565304', 'National O/L Commerce Alumni', 'Yasodara Devi Balika Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-54032105', 'Sithum Nemsara', '0757795854', 'pass123', 'student', '54032105', 'National O/L Commerce Alumni', 'OKI International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54068240', 'Sandali Sinelya', '0744396359', 'pass123', 'student', '54068240', 'National O/L Commerce Alumni', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', NULL, NULL, '2024-01-10', 'active'),
-('std-53915585', 'Sithmi Nethumika', '0788457791', 'pass123', 'student', '53915585', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54008743', 'Tishara Senanayake', '0797975879', 'pass123', 'student', '54008743', 'National O/L Commerce Alumni', 'St. Anne\'s Balika Maha Vidyalaya', NULL, NULL, '2024-01-10', 'active'),
-('std-53915739', 'Dulina Nethul', '0738503636', 'pass123', 'student', '53915739', 'National O/L Commerce Alumni', 'Sumedha College, Gampaha', NULL, NULL, '2024-01-10', 'active'),
-('std-54086817', 'Binori Thathsarani', '0785632505', 'pass123', 'student', '54086817', 'National O/L Commerce Alumni', 'Gurukula College, Kelaniya', NULL, NULL, '2024-01-10', 'active'),
-('std-54046378', 'Amanda Deshini', '0784518851', 'pass123', 'student', '54046378', 'National O/L Commerce Alumni', 'J.M.C International School', NULL, NULL, '2024-01-10', 'active'),
-('std-54031907', 'Pathumi Peries', '0739025131', 'pass123', 'student', '54031907', 'National O/L Commerce Alumni', 'Private Candidate', NULL, NULL, '2024-01-10', 'active')
-ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`), `role`=VALUES(`role`), `index_no`=VALUES(`index_no`), `school`=VALUES(`school`);
+('admin-01', 'Evon Aravinda (Lead Educator & Admin)', '0719998877', 'admin123', 'admin', NULL, 'All Batches', 'Main Faculty', NULL, '/images/educator.jpg', '2024-01-01', 'active')
+ON DUPLICATE KEY UPDATE `full_name`='Evon Aravinda (Lead Educator & Admin)';
 
--- 3. Insert Papers (6 exams)
-INSERT INTO `papers` (`paper_uid`, `paper_number`, `paper_code`, `title`, `batch`, `subject`, `term`, `month`, `year`, `exam_date`, `total_marks`, `duration_minutes`, `total_candidates`, `highest_mark`, `average_mark`, `pass_percentage`, `topics`, `topper_info`, `score_distribution`, `pdf_url`, `marking_scheme_url`, `status`)
-VALUES
-('paper-01', 'Paper 01', 'EA-2025-P01', 'All-Island Full O/L Model Exam 01 - Business & Accounting Studies', '2025 O/L Speed Revision', 'Business & Accounting Studies', 'Final Pre-Exam Assessment', 'September 2026', 2026, 'September 2026', 100, 180, 524, 100, 76.8, 99.2, '[\"Accounting Equation & Source Documents\",\"Prime Entry Books & Ledger Accounts\",\"Trial Balance & Error Rectification\",\"Sole Proprietorship Financial Statements\",\"Business Stakeholders & Economic Roles\"]', '{\"name\":\"Yashodhini Vihara\",\"school\":\"Devi Balika Vidyalaya, Colombo\",\"indexNo\":\"53560574\",\"totalScore\":100,\"part1Score\":40,\"part2Score\":60,\"badge\":\"Island 1st • Perfect Score 100/100\",\"quote\":\"Sir\'s ledger balancing shortcuts and speed writing methods helped me complete both sections with 25 minutes left for checking!\",\"avatarImage\":\"/images/top_student_rank1.jpg\"}', '{\"ninetyPlus\":88,\"eightyToEightyNine\":194,\"seventyToSeventyNine\":148,\"belowSeventy\":94}', '/downloads/paper-01-paper.pdf', '/downloads/paper-01-marking-scheme.pdf', 'published'),
-('paper-02', 'Paper 02', 'EA-2025-P02', 'Financial Statements & Balance Sheet Adjustment Master Test', '2025 O/L Speed Revision', 'Business & Accounting Studies', 'Core Accounting Test', 'September 2026', 2026, 'September 2026', 100, 150, 498, 99, 74.2, 98.4, '[\"Depreciation (Straight Line & Reducing Balance)\",\"Bad Debts & Provision for Doubtful Debts\",\"Accrued Expenses & Prepaid Incomes\",\"Closing Stock Valuation\",\"Comprehensive Trading, Profit & Loss Account\"]', '{\"name\":\"Senal Rajapakse\",\"school\":\"Sussex College, Kiribathgoda\",\"indexNo\":\"54054133\",\"totalScore\":99,\"part1Score\":40,\"part2Score\":59,\"badge\":\"Highest Mark 99/100 • Paper Champion\",\"quote\":\"The step-by-step adjustment table taught by Evon Sir made complex balance sheet adjustments effortless.\",\"avatarImage\":\"/images/top_student_rank2.jpg\"}', '{\"ninetyPlus\":72,\"eightyToEightyNine\":178,\"seventyToSeventyNine\":152,\"belowSeventy\":96}', '/downloads/paper-02-paper.pdf', '/downloads/paper-02-marking-scheme.pdf', 'published'),
-('paper-03', 'Paper 03', 'EA-2025-P03', 'Manufacturing Accounts & Cost Accounting Mastery Paper', '2025 O/L Speed Revision', 'Business & Accounting Studies', 'Specialized Accounting Paper', 'August 2026', 2026, 'August 2026', 100, 150, 476, 100, 75.1, 97.9, '[\"Direct Material, Direct Labour & Direct Expenses\",\"Prime Cost Calculation\",\"Factory Overheads Allocation & Apportionment\",\"Work-in-Progress & Production Cost of Finished Goods\",\"Costing Formulas & Past Paper Traps\"]', '{\"name\":\"Sethmi Thehasna\",\"school\":\"Viharamahadevi Balika, Kiribathgoda\",\"indexNo\":\"54068177\",\"totalScore\":100,\"part1Score\":40,\"part2Score\":60,\"badge\":\"Island 1st • Perfect Score 100/100\",\"quote\":\"Manufacturing accounts used to be intimidating, but Evon Sir\'s flowcharts simplified everything so clearly!\",\"avatarImage\":\"/images/top_student_rank3.jpg\"}', '{\"ninetyPlus\":81,\"eightyToEightyNine\":165,\"seventyToSeventyNine\":142,\"belowSeventy\":88}', '/downloads/paper-03-paper.pdf', '/downloads/paper-03-marking-scheme.pdf', 'published'),
-('paper-04', 'Paper 04', 'EA-2025-P04', 'Bank Reconciliation, Cash Book & Trial Balance Error Rectification', '2025 O/L Speed Revision', 'Business & Accounting Studies', 'Speed & Accuracy Challenge', 'August 2026', 2026, 'August 2026', 100, 150, 512, 98, 72.9, 97.4, '[\"Adjusted Cash Book & Bank Overdrafts\",\"Uncredited Cheques & Unpresented Cheques\",\"Direct Deposits & Standing Orders\",\"Suspense Account & Errors Not Affecting Trial Balance\",\"Errors Affecting Trial Balance & Rectification Journal Entries\"]', '{\"name\":\"Disas Harshana\",\"school\":\"Bandaranayake Central College, Veyangoda\",\"indexNo\":\"53936671\",\"totalScore\":98,\"part1Score\":39,\"part2Score\":59,\"badge\":\"Highest Mark 98/100 • Speed Champion\",\"quote\":\"Bank reconciliation used to confuse me with debits and credits, but the 4-quadrant technique made it 100\% foolproof!\",\"avatarImage\":\"/images/top_student_rank2.jpg\"}', '{\"ninetyPlus\":67,\"eightyToEightyNine\":182,\"seventyToSeventyNine\":161,\"belowSeventy\":102}', '/downloads/paper-04-paper.pdf', '/downloads/paper-04-marking-scheme.pdf', 'published'),
-('paper-05', 'Paper 05', 'EA-2026-P01', 'Business Studies Section - Case Studies & Strategic Essay Writing', '2026 O/L Paper Class', 'Business & Accounting Studies', 'Commerce Section Mastery', 'July 2026', 2026, 'July 2026', 100, 150, 462, 99, 76.4, 98.8, '[\"Sole Proprietorship, Partnership & Companies\",\"Money, Banking & Modern Digital Payments\",\"Trade (Domestic & International Export/Import)\",\"Government Regulation & Consumer Protection\",\"Case Study Keyword Highlighting & Mark Schemes\"]', '{\"name\":\"Minradha Ranasinghe\",\"school\":\"Viharamahadevi Balika Vidyalaya, Kiribathgoda\",\"indexNo\":\"54068231\",\"totalScore\":99,\"part1Score\":40,\"part2Score\":59,\"badge\":\"Highest Mark 99/100 • Business Studies Master\",\"quote\":\"Sir\'s essay templates and government marking scheme analysis helped me write structured, high-scoring answers effortlessly.\",\"avatarImage\":\"/images/top_student_rank1.jpg\"}', '{\"ninetyPlus\":78,\"eightyToEightyNine\":172,\"seventyToSeventyNine\":138,\"belowSeventy\":74}', '/downloads/paper-05-paper.pdf', '/downloads/paper-05-marking-scheme.pdf', 'published'),
-('paper-06', 'Paper 06', 'EA-2026-P02', 'All-Island Grand Pre-O/L Mock Examination (Final Full Syllabus)', '2026 O/L Paper Class', 'Business & Accounting Studies', 'All-Island Benchmark Exam', 'June 2026', 2026, 'June 2026', 100, 180, 548, 100, 77.3, 99.4, '[\"Complete Grade 10 & 11 Syllabus Coverage\",\"50 MCQ Precision Testing Under Time Limits\",\"Complete Structured Accounting Financial Accounts\",\"Commerce Case Analysis with Strict Marking Key\",\"Presentation, Underlining & Double Ruling Guidelines\"]', '{\"name\":\"Linuka Damsanda\",\"school\":\"Bandaranayake College, Gampaha\",\"indexNo\":\"53884191\",\"totalScore\":100,\"part1Score\":40,\"part2Score\":60,\"badge\":\"Island 1st • Perfect Score 100/100\",\"quote\":\"Practicing 6 full timed papers before the exam gave me supreme confidence on real exam day.\",\"avatarImage\":\"/images/top_student_rank2.jpg\"}', '{\"ninetyPlus\":94,\"eightyToEightyNine\":204,\"seventyToSeventyNine\":162,\"belowSeventy\":88}', '/downloads/paper-06-paper.pdf', '/downloads/paper-06-marking-scheme.pdf', 'published')
-ON DUPLICATE KEY UPDATE `title`=VALUES(`title`), `total_candidates`=VALUES(`total_candidates`), `highest_mark`=VALUES(`highest_mark`);
+-- Default Batches
+INSERT IGNORE INTO `batches` (`name`) VALUES
+('2025 O/L Speed Revision'),
+('2026 O/L Paper Class'),
+('2027 O/L Foundation Batch');
 
--- 4. Insert Student Exam Results (62 records)
-INSERT INTO `paper_results` (`result_uid`, `paper_uid`, `rank_in_class`, `student_name`, `school`, `index_no`, `part1_score`, `part2_score`, `total_score`, `grade`, `achievement`, `avatar_initials`, `avatar_image`)
-VALUES
-('paper-01-p1-1', 'paper-01', 1, 'Yashodhini Vihara', 'Devi Balika Vidyalaya, Colombo', '53560574', 40, 60, 100, 'A*', 'Perfect Score 100\% • Island 1st', 'YV', '/images/top_student_rank1.jpg'),
-('paper-01-p1-2', 'paper-01', 2, 'Hasal Samaranayake', 'Ananda College, Colombo', '53519028', 40, 59, 99, 'A*', 'Class 2nd • Perfect MCQ 40/40', 'HS', '/images/top_student_rank2.jpg'),
-('paper-01-p1-3', 'paper-01', 3, 'Vidun Wickramasinghe', 'Sumedha College, Gampaha', '53914473', 39, 59, 98, 'A*', 'Top in Gampaha District', 'VW', '/images/top_student_rank3.jpg'),
-('paper-01-p1-4', 'paper-01', 4, 'Akithra Induwari', 'Ananda Balika Vidyalaya, Colombo', '53511450', 39, 58, 97, 'A*', 'Distinction Excellence', 'AI', NULL),
-('paper-01-p1-5', 'paper-01', 5, 'Tenushi Pamodya', 'Sumedha College, Gampaha', '53914864', 40, 57, 97, 'A*', 'Perfect MCQ 40/40', 'TP', NULL),
-('paper-01-p1-6', 'paper-01', 6, 'Senal Rajapakse', 'Sussex College, Kiribathgoda', '54054133', 38, 58, 96, 'A*', 'Outstanding Presentation', 'SR', NULL),
-('paper-01-p1-7', 'paper-01', 7, 'Shehan Rashmitha', 'Bandaranayake College, Gampaha', '53884477', 38, 57, 95, 'A*', 'Top Tier Performer', 'SR', NULL),
-('paper-01-p1-8', 'paper-01', 8, 'Deneth Nimtharu', 'Thurstan College, Colombo', '53582012', 37, 57, 94, 'A*', 'High Distinction', 'DN', NULL),
-('paper-01-p1-9', 'paper-01', 9, 'Sethmi Thehasna', 'Viharamahadevi Balika, Kiribathgoda', '54068177', 38, 55, 93, 'A*', 'High Distinction', 'ST', NULL),
-('paper-01-p1-10', 'paper-01', 10, 'Linuka Damsanda', 'Bandaranayake College, Gampaha', '53884191', 37, 55, 92, 'A*', 'Top 10 Finalist', 'LD', NULL),
-('paper-01-p1-11', 'paper-01', 11, 'Danuli De Silva', 'Devi Balika Vidyalaya, Colombo', '53560841', 36, 55, 91, 'A*', 'Distinction Award', 'DD', NULL),
-('paper-01-p1-12', 'paper-01', 12, 'Kevin Adrian', 'St. Joseph\'s College, Colombo', '53494296', 36, 54, 90, 'A*', 'Distinction Award', 'KA', NULL),
-('paper-02-p2-1', 'paper-02', 1, 'Senal Rajapakse', 'Sussex College, Kiribathgoda', '54054133', 40, 59, 99, 'A*', 'Paper 1st • Highest Mark 99\%', 'SR', '/images/top_student_rank2.jpg'),
-('paper-02-p2-2', 'paper-02', 2, 'Tenushi Pamodya', 'Sumedha College, Gampaha', '53914864', 39, 59, 98, 'A*', 'Paper 2nd • Financial Statement Pro', 'TP', '/images/top_student_rank3.jpg'),
-('paper-02-p2-3', 'paper-02', 3, 'Deneth Nimtharu', 'Thurstan College, Colombo', '53582012', 39, 58, 97, 'A*', 'Paper 3rd • Flawless Adjustments', 'DN', '/images/top_student_rank1.jpg'),
-('paper-02-p2-4', 'paper-02', 4, 'Yashodhini Vihara', 'Devi Balika Vidyalaya, Colombo', '53560574', 38, 58, 96, 'A*', 'High Distinction', 'YV', NULL),
-('paper-02-p2-5', 'paper-02', 5, 'Kulitha Ranudaya', 'Britishway International, Nittambuwa', '54271010', 38, 57, 95, 'A*', 'High Distinction', 'KR', NULL),
-('paper-02-p2-6', 'paper-02', 6, 'Hasal Samaranayake', 'Ananda College, Colombo', '53519028', 37, 57, 94, 'A*', 'Top Tier Performer', 'HS', NULL),
-('paper-02-p2-7', 'paper-02', 7, 'Minradha Ranasinghe', 'Viharamahadevi Balika, Kiribathgoda', '54068231', 37, 56, 93, 'A*', 'Top Tier Performer', 'MR', NULL),
-('paper-02-p2-8', 'paper-02', 8, 'Kisal Weerakone', 'St. Joseph\'s College, Colombo', '53494644', 36, 56, 92, 'A*', 'High Distinction', 'KW', NULL),
-('paper-02-p2-9', 'paper-02', 9, 'Ovini Nithasha', 'Mahamaya Girls College, Kadawatha', '54052360', 36, 55, 91, 'A*', 'Distinction Award', 'ON', NULL),
-('paper-02-p2-10', 'paper-02', 10, 'Chanuga Walpola', 'Nalanda College, Colombo', '53530357', 36, 54, 90, 'A*', 'Distinction Award', 'CW', NULL),
-('paper-03-p3-1', 'paper-03', 1, 'Sethmi Thehasna', 'Viharamahadevi Balika, Kiribathgoda', '54068177', 40, 60, 100, 'A*', 'Perfect Score 100\% • Island 1st', 'ST', '/images/top_student_rank3.jpg'),
-('paper-03-p3-2', 'paper-03', 2, 'Miyuru Vishwajith', 'Bandaranayake College, Gampaha', '53883616', 40, 59, 99, 'A*', 'Class 2nd • Prime Cost Specialist', 'MV', '/images/top_student_rank1.jpg'),
-('paper-03-p3-3', 'paper-03', 3, 'Ehansa Kurukulasuriya', 'Bishops College, Colombo', '53506189', 39, 59, 98, 'A*', 'Class 3rd • Exceptional Structure', 'EK', '/images/top_student_rank2.jpg'),
-('paper-03-p3-4', 'paper-03', 4, 'Pesandu Lukdiw', 'Bandaranayake College, Gampaha', '53883918', 39, 58, 97, 'A*', 'Top 5 Performer', 'PL', NULL),
-('paper-03-p3-5', 'paper-03', 5, 'Denith Manthuja', 'St. Joseph\'s College, Colombo', '25047936', 38, 58, 96, 'A*', 'Top 5 Performer', 'DM', NULL),
-('paper-03-p3-6', 'paper-03', 6, 'Hesali Alwis', 'Musaeus College, Colombo', '53554396', 38, 57, 95, 'A*', 'High Distinction', 'HA', NULL),
-('paper-03-p3-7', 'paper-03', 7, 'Duveesha Amarasinghe', 'Gothami Balika Vidyalaya, Colombo', '53524330', 37, 57, 94, 'A*', 'High Distinction', 'DA', NULL),
-('paper-03-p3-8', 'paper-03', 8, 'Kavi Rivisahan', 'Mahanama College, Colombo', '53586301', 37, 56, 93, 'A*', 'Top 10 Finalist', 'KR', NULL),
-('paper-03-p3-9', 'paper-03', 9, 'Chathuni Jayasinghe', 'Holy Cross College, Gampaha', '53891015', 37, 55, 92, 'A*', 'Distinction Award', 'CJ', NULL),
-('paper-03-p3-10', 'paper-03', 10, 'Sandesh Ayodhya', 'Karunarathna Buddhist College', '54001650', 36, 55, 91, 'A*', 'Distinction Award', 'SA', NULL),
-('paper-04-p4-1', 'paper-04', 1, 'Disas Harshana', 'Bandaranayake Central College, Veyangoda', '53936671', 39, 59, 98, 'A*', 'Paper 1st • Highest Mark 98\%', 'DH', '/images/top_student_rank2.jpg'),
-('paper-04-p4-2', 'paper-04', 2, 'Damithu Thenujaya', 'Bandaranayake College, Gampaha', '53883780', 39, 58, 97, 'A*', 'Paper 2nd • Error Rectification Ace', 'DT', '/images/top_student_rank1.jpg'),
-('paper-04-p4-3', 'paper-04', 3, 'W.W.M. Panchanga', 'Asoka College, Colombo 10', '53523938', 39, 57, 96, 'A*', 'Paper 3rd • High Distinction', 'WP', '/images/top_student_rank3.jpg'),
-('paper-04-p4-4', 'paper-04', 4, 'Desandi Thinara', 'Bandaranayake Central College, Veyangoda', '53936817', 38, 57, 95, 'A*', 'Top 5 Performer', 'DT', NULL),
-('paper-04-p4-5', 'paper-04', 5, 'Sawani Pamalya', 'Viharamahadevi Balika Vidyalaya', '54067928', 38, 56, 94, 'A*', 'Top 5 Performer', 'SP', NULL),
-('paper-04-p4-6', 'paper-04', 6, 'Yoshini Mihindi', 'Viharamahadevi Balika Vidyalaya', '54068363', 37, 56, 93, 'A*', 'High Distinction', 'YM', NULL),
-('paper-04-p4-7', 'paper-04', 7, 'Malki Nimthara', 'Yasodara Devi Balika Vidyalaya', '53912209', 37, 55, 92, 'A*', 'Distinction Award', 'MN', NULL),
-('paper-04-p4-8', 'paper-04', 8, 'Inudi Hesansa', 'Yasodara Devi Balika Vidyalaya', '53912560', 37, 54, 91, 'A*', 'Distinction Award', 'IH', NULL),
-('paper-04-p4-9', 'paper-04', 9, 'Geehara Anusari', 'Sirimavo Bandaranaike Vidyalaya', '53605900', 36, 54, 90, 'A*', 'Top 10 Finalist', 'GA', NULL),
-('paper-04-p4-10', 'paper-04', 10, 'Vinudi Dahamila', 'Sumedha College, Gampaha', '53914708', 36, 54, 90, 'A*', 'Top 10 Finalist', 'VD', NULL),
-('paper-05-p5-1', 'paper-05', 1, 'Minradha Ranasinghe', 'Viharamahadevi Balika Vidyalaya', '54068231', 40, 59, 99, 'A*', 'Paper 1st • Perfect MCQ 40/40', 'MR', '/images/top_student_rank1.jpg'),
-('paper-05-p5-2', 'paper-05', 2, 'Vidath Damsara', 'Bandaranayake College, Gampaha', '53884485', 40, 58, 98, 'A*', 'Paper 2nd • Case Study Expert', 'VD', '/images/top_student_rank2.jpg'),
-('paper-05-p5-3', 'paper-05', 3, 'Devangi Amarasinghe', 'Yasodara Devi Balika Vidyalaya', '53912470', 39, 58, 97, 'A*', 'Paper 3rd • Distinction Excellence', 'DA', '/images/top_student_rank3.jpg'),
-('paper-05-p5-4', 'paper-05', 4, 'Senuth Dinsara', 'Bandaranayake College, Gampaha', '53884493', 39, 57, 96, 'A*', 'Top 5 Performer', 'SD', NULL),
-('paper-05-p5-5', 'paper-05', 5, 'Maheema Sithumini', 'Rathnavali Balika Vidyalaya, Gampaha', '53923324', 38, 57, 95, 'A*', 'Top 5 Performer', 'MS', NULL),
-('paper-05-p5-6', 'paper-05', 6, 'Gehara Dharmasri', 'Rathnavali Balika Vidyalaya, Gampaha', '53923383', 38, 56, 94, 'A*', 'High Distinction', 'GD', NULL),
-('paper-05-p5-7', 'paper-05', 7, 'Nethuki Lehansa', 'Musaeus College, Colombo', '53553250', 37, 56, 93, 'A*', 'High Distinction', 'NL', NULL),
-('paper-05-p5-8', 'paper-05', 8, 'Adhithi Alwis', 'Holy Cross College, Gampaha', '53890949', 37, 55, 92, 'A*', 'Distinction Award', 'AA', NULL)
-ON DUPLICATE KEY UPDATE `total_score`=VALUES(`total_score`), `rank_in_class`=VALUES(`rank_in_class`), `grade`=VALUES(`grade`);
-INSERT INTO `paper_results` (`result_uid`, `paper_uid`, `rank_in_class`, `student_name`, `school`, `index_no`, `part1_score`, `part2_score`, `total_score`, `grade`, `achievement`, `avatar_initials`, `avatar_image`)
-VALUES
-('paper-05-p5-9', 'paper-05', 9, 'Nevinka Fernando', 'Holy Cross College, Gampaha', '53890744', 36, 55, 91, 'A*', 'Distinction Award', 'NF', NULL),
-('paper-05-p5-10', 'paper-05', 10, 'Dulithi Nevithma', 'Holy Cross College, Gampaha', '53891040', 36, 54, 90, 'A*', 'Top 10 Finalist', 'DN', NULL),
-('paper-06-p6-1', 'paper-06', 1, 'Linuka Damsanda', 'Bandaranayake College, Gampaha', '53884191', 40, 60, 100, 'A*', 'Perfect Score 100\% • Island 1st', 'LD', '/images/top_student_rank2.jpg'),
-('paper-06-p6-2', 'paper-06', 2, 'Kevin Adrian', 'St. Joseph\'s College, Colombo', '53494296', 40, 59, 99, 'A*', 'Class 2nd • Perfect MCQ 40/40', 'KA', '/images/top_student_rank1.jpg'),
-('paper-06-p6-3', 'paper-06', 3, 'Yashodhini Vihara', 'Devi Balika Vidyalaya, Colombo', '53560574', 40, 59, 99, 'A*', 'Class 2nd • Consistency Champion', 'YV', '/images/top_student_rank3.jpg'),
-('paper-06-p6-4', 'paper-06', 4, 'Hasal Samaranayake', 'Ananda College, Colombo', '53519028', 39, 59, 98, 'A*', 'Top 5 All-Island', 'HS', NULL),
-('paper-06-p6-5', 'paper-06', 5, 'Vidun Wickramasinghe', 'Sumedha College, Gampaha', '53914473', 39, 58, 97, 'A*', 'Top 5 All-Island', 'VW', NULL),
-('paper-06-p6-6', 'paper-06', 6, 'Kumali Herath', 'Musaeus College, Colombo', '53553290', 39, 57, 96, 'A*', 'High Distinction', 'KH', NULL),
-('paper-06-p6-7', 'paper-06', 7, 'Virajitha Nitheesh', 'Negombo South International School', '53961463', 38, 57, 95, 'A*', 'High Distinction', 'VN', NULL),
-('paper-06-p6-8', 'paper-06', 8, 'Buthsara Dinumuthu', 'Gurukula College, Kelaniya', '54085470', 38, 56, 94, 'A*', 'Top 10 Finalist', 'BD', NULL),
-('paper-06-p6-9', 'paper-06', 9, 'Kajini Kashmira', 'Gurukula College, Kelaniya', '54086736', 37, 56, 93, 'A*', 'Distinction Award', 'KK', NULL),
-('paper-06-p6-10', 'paper-06', 10, 'Minoli Sadithma', 'Negombo South International School', '53961480', 37, 55, 92, 'A*', 'Distinction Award', 'MS', NULL)
-ON DUPLICATE KEY UPDATE `total_score`=VALUES(`total_score`), `rank_in_class`=VALUES(`rank_in_class`), `grade`=VALUES(`grade`);
 
--- 5. Insert National O/L Exam Results (169 records)
-INSERT INTO `national_results` (`student_name`, `school`, `index_no`, `grade_badge`, `letter_grade`, `is_top_champion`)
-VALUES
-('Yashodhini Vihara', 'Devi Balika Vidyalaya, Colombo', '53560574', 'A9', 'A', 1),
-('Akithra Induwari', 'Ananda Balika Vidyalaya, Colombo', '53511450', 'A9', 'A', 1),
-('Hasal Samaranayake', 'Ananda College, Colombo', '53519028', 'A9', 'A', 1),
-('Vidun Wickramasinghe', 'Sumedha College, Gampaha', '53914473', 'A9', 'A', 1),
-('Tenushi Pamodya', 'Sumedha College, Gampaha', '53914864', 'A9', 'A', 1),
-('Senal Rajapakse', 'Sussex College, Kiribathgoda', '54054133', 'A9', 'A', 1),
-('W.W.M. Panchanga', 'Asoka College, Colombo 10', '53523938', 'A9', 'A', 1),
-('Shehan Rashmitha', 'Bandaranayake College, Gampaha', '53884477', 'A9', 'A', 1),
-('Desandi Thinara', 'Bandaranayake Central College, Veyangoda', '53936817', 'A9', 'A', 1),
-('Deneth Nimtharu', 'Thurstan College, Colombo', '53582012', 'A9', 'A', 1),
-('Sethmi Thehasna', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068177', 'A9', 'A', 1),
-('Minradha Ranasinghe', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068231', 'A9', 'A', 1),
-('Disas Harshana', 'Bandaranayake Central College, Veyangoda', '53936671', 'A9', 'A', 1),
-('Linuka Damsanda', 'Bandaranayake College, Gampaha', '53884191', 'A9', 'A', 1),
-('Damithu Thenujaya', 'Bandaranayake College, Gampaha', '53883780', 'A9', 'A', 1),
-('Sawani Pamalya', 'Viharamahadevi Balika Vidyalaya', '54067928', 'A9', 'A', 1),
-('Yoshini Mihindi', 'Viharamahadevi Balika Vidyalaya', '54068363', 'A9', 'A', 1),
-('Vidath Damsara', 'Bandaranayake College, Gampaha', '53884485', 'A9', 'A', 1),
-('Miyuru Vishwajith', 'Bandaranayake College, Gampaha', '53883616', 'A9', 'A', 1),
-('Pesandu Lukdiw', 'Bandaranayake College, Gampaha', '53883918', 'A9', 'A', 1),
-('Malki Nimthara', 'Yasodara Devi Balika Vidyalaya', '53912209', 'A9', 'A', 1),
-('Inudi Hesansa', 'Yasodara Devi Balika Vidyalaya', '53912560', 'A9', 'A', 1),
-('Devangi Amarasinghe', 'Yasodara Devi Balika Vidyalaya', '53912470', 'A9', 'A', 1),
-('Senuth Dinsara', 'Bandaranayake College, Gampaha', '53884493', 'A9', 'A', 1),
-('Ehansa Kurukulasuriya', 'Bishops College, Colombo', '53506189', 'A9', 'A', 1),
-('Kulitha Ranudaya', 'Britishway International School, Nittambuwa', '54271010', 'A9', 'A', 1),
-('Minoli Sadithma', 'Negombo South International School', '53961480', 'A9', 'A', 1),
-('Danuli De Silva', 'Devi Balika Vidyalaya, Colombo', '53560841', 'A9', 'A', 1),
-('Duveesha Amarasinghe', 'Gothami Balika Vidyalaya, Colombo', '53524330', 'A9', 'A', 1),
-('Buthsara Dinumuthu', 'Gurukula College, Kelaniya', '54085470', 'A9', 'A', 1),
-('Kajini Kashmira', 'Gurukula College, Kelaniya', '54086736', 'A9', 'A', 1),
-('Adhithi Alwis', 'Holy Cross College, Gampaha', '53890949', 'A9', 'A', 1),
-('Nevinka Fernando', 'Holy Cross College, Gampaha', '53890744', 'A9', 'A', 1),
-('Chathuni Jayasinghe', 'Holy Cross College, Gampaha', '53891015', 'A9', 'A', 1),
-('Dulithi Nevithma', 'Holy Cross College, Gampaha', '53891040', 'A9', 'A', 1),
-('Sandesh Ayodhya', 'Karunarathna Buddhist College, Mathumagala', '54001650', 'A9', 'A', 1),
-('Ovini Nithasha', 'Mahamaya Girls College, Kadawatha', '54052360', 'A9', 'A', 1),
-('Kavi Rivisahan', 'Mahanama College, Colombo', '53586301', 'A9', 'A', 1),
-('Hesali Alwis', 'Musaeus College, Colombo', '53554396', 'A9', 'A', 1),
-('Nethuki Lehansa', 'Musaeus College, Colombo', '53553250', 'A9', 'A', 1),
-('Kumali Herath', 'Musaeus College, Colombo', '53553290', 'A9', 'A', 1),
-('Chanuga Walpola', 'Nalanda College, Colombo', '53530357', 'A9', 'A', 1),
-('Virajitha Nitheesh', 'Negombo South International School', '53961463', 'A9', 'A', 1),
-('Maheema Sithumini', 'Rathnavali Balika Vidyalaya, Gampaha', '53923324', 'A9', 'A', 1),
-('Gehara Dharmasri', 'Rathnavali Balika Vidyalaya, Gampaha', '53923383', 'A9', 'A', 1),
-('Geehara Anusari', 'Sirimavo Bandaranaike Vidyalaya, Colombo', '53605900', 'A9', 'A', 1),
-('Kisal Weerakone', 'St. Joseph\'s College, Colombo', '53494644', 'A9', 'A', 1),
-('Denith Manthuja', 'St. Joseph\'s College', '25047936', 'A9', 'A', 1),
-('Kevin Adrian', 'St. Joseph\'s College', '53494296', 'A9', 'A', 1),
-('Vinudi Dahamila', 'Sumedha College, Gampaha', '53914708', 'A9', 'A', 1)
-ON DUPLICATE KEY UPDATE `student_name`=VALUES(`student_name`), `school`=VALUES(`school`), `grade_badge`=VALUES(`grade_badge`);
-INSERT INTO `national_results` (`student_name`, `school`, `index_no`, `grade_badge`, `letter_grade`, `is_top_champion`)
-VALUES
-('Mihindi Dias', 'Yoshida Shokanji International', '53734017', 'A8', 'A', 0),
-('Sasika Tharupathi', 'Gurukula College, Kelaniya', '54085411', 'A8', 'A', 0),
-('Yasith Gunathilake', 'Ananda College, Colombo', '53518578', 'A8', 'A', 0),
-('Sinura Vidun', 'Ananda College, Colombo', '53519930', 'A8', 'A', 0),
-('Nethaka Vinsith', 'Asoka College, Colombo 10', '53523830', 'A8', 'A', 0),
-('Dulmika Ransen', 'Gurukula College, Kelaniya', '54085519', 'A8', 'A', 0),
-('Isindu Kethmin', 'Gurukula College, Kelaniya', '54085373', 'A8', 'A', 0),
-('Amasha Fernando', 'Holy Cross College, Gampaha', '53890884', 'A8', 'A', 0),
-('H.M.N. Ahasna', 'Lyceum International School', '54096332', 'A8', 'A', 0),
-('Oneli Lithasha', 'Mahamaya Girls College, Kadawatha', '54052432', 'A8', 'A', 0),
-('Jayith Sandira', 'Mahanama College, Colombo', '53586603', 'A8', 'A', 0),
-('Nisira Nimsara', 'Mahanama College, Colombo', '53586638', 'A8', 'A', 0),
-('Kusalya Indrawansa', 'Musaeus College, Colombo', '53554647', 'A8', 'A', 0),
-('Piyumali Jayasinghe', 'Musaeus College, Colombo', '53554507', 'A8', 'A', 0),
-('Shehara Dewwini', 'OKI International School', '54032075', 'A8', 'A', 0),
-('Shwetha Amashi', 'Rathnavali Balika Vidyalaya, Gampaha', '53923057', 'A8', 'A', 0),
-('Sanuka Devnija', 'S. Thomas\' Preparatory School, Kollupitiya', '54600541', 'A8', 'A', 0),
-('Anushari Keshangi', 'Sapugaskanda Vishaka Balika Vidyalaya', '54074177', 'A8', 'A', 0),
-('Kris Fernando', 'St. Joseph\'s College', '53494954', 'A8', 'A', 0),
-('Nadeeja Oshada', 'St. Joseph\'s College', '54017343', 'A8', 'A', 0),
-('Ramika Dharmawardana', 'Sumedha College, Gampaha', '53914589', 'A8', 'A', 0),
-('Mahimi Theersha', 'Sumedha College, Gampaha', '53914775', 'A8', 'A', 0),
-('Osanda Dinsara', 'Sumedha College, Gampaha', '53914554', 'A8', 'A', 0),
-('Gihansa Ranumi', 'Sumedha College, Gampaha', '53914660', 'A8', 'A', 0),
-('Sanuki Sanulya', 'Sumedha College, Gampaha', '53914805', 'A8', 'A', 0),
-('Sajana Insara', 'Sumedha College, Gampaha', '53914546', 'A8', 'A', 0),
-('Thehan Nimsara', 'Sussex College, Kiribathgoda', '54051525', 'A8', 'A', 0),
-('Vihanga Bandara', 'Thurstan College, Colombo', '53581997', 'A8', 'A', 0),
-('Senuthi Udhamsa', 'Viharamahadevi Balika Vidyalaya', '54067901', 'A8', 'A', 0),
-('Siluni Himandee', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074452', 'A8', 'A', 0),
-('Supipi Vidarshana', 'Yasodara Devi Balika Vidyalaya', '53912217', 'A8', 'A', 0),
-('Ashvini Deeshana', 'Yasodara Devi Balika Vidyalaya', '53911172', 'A8', 'A', 0),
-('Mahith Shervin', 'York International School', '54036330', 'A8', 'A', 0),
-('Mathista Prabashwara', 'York International School', '54036283', 'A8', 'A', 0),
-('Daham Iroshana', 'Yoshida Shokanji International', '54096731', 'A8', 'A', 0),
-('Chithira Thilakaweera', 'D.S. Senanayake College, Colombo', '53556216', 'A7', 'A', 0),
-('Adeesha Nimsarani', 'Yasodara Devi Balika Vidyalaya', '53912667', 'A7', 'A', 0),
-('Nadinsa Wickramasingha', 'Holy Cross College, Gampaha', '53890922', 'A7', 'A', 0),
-('Methushi Bopearatchy', 'Holy Family Convent, Bambalapitiya', '53603222', 'A7', 'A', 0),
-('Mihin Gulawita', 'Lyceum International School', '53920538', 'A7', 'A', 0),
-('Imira Sethmika', 'Mahanama College, Colombo', '53586565', 'A7', 'A', 0),
-('Risindi Nethsandi', 'Musaeus College, Colombo', '53553810', 'A7', 'A', 0),
-('Lohansa Natharie', 'Sapugaskanda Vishaka Balika Vidyalaya', '54074150', 'A7', 'A', 0),
-('Kaveesha Ranindu', 'Sri Dharmaloka College, Kelaniya', '54091250', 'A7', 'A', 0),
-('Sithuki Nelithma', 'Sri Sanghabodhi National School', '53951360', 'A7', 'A', 0),
-('N.L.D. Thilakarathne', 'Sri Sanghabodhi National School', '53951280', 'A7', 'A', 0),
-('Pawara Nethsilu', 'St. Joseph\'s College', '5401731', 'A7', 'A', 0),
-('Abheetha Basuru', 'St. Joseph\'s College', '54017262', 'A7', 'A', 0),
-('Kaveesha Manasith', 'Sumedha College, Gampaha', '53914228', 'A7', 'A', 0),
-('Hiruka Randiew', 'Sumedha College, Gampaha', '53914961', 'A7', 'A', 0)
-ON DUPLICATE KEY UPDATE `student_name`=VALUES(`student_name`), `school`=VALUES(`school`), `grade_badge`=VALUES(`grade_badge`);
-INSERT INTO `national_results` (`student_name`, `school`, `index_no`, `grade_badge`, `letter_grade`, `is_top_champion`)
-VALUES
-('Yehara Sinadi', 'Thakshila College, Gampaha', '53891791', 'A7', 'A', 0),
-('Rusandu Thanuwara', 'Thakshila College, Gampaha', '53891554', 'A7', 'A', 0),
-('Jayali Sandareka', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074363', 'A7', 'A', 0),
-('Sanulya Ransadee', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074215', 'A7', 'A', 0),
-('Thinuga Gunawardana', 'Wesley College, Colombo', '53547616', 'A7', 'A', 0),
-('Nethuli Nuhansa', 'Yasodara Devi Balika Vidyalaya', '53912764', 'A7', 'A', 0),
-('Dulansa Sayumdi', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074371', 'A7', 'A', 0),
-('Thiseni Yohansa', 'Yasodara Devi Balika Vidyalaya', '53912233', 'A7', 'A', 0),
-('Jethmi Sethumya', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074347', 'A7', 'A', 0),
-('Shanuka Nethsara', 'Bandaranayake College, Gampaha', '53884531', 'A7', 'A', 0),
-('Fahad Feroz', 'St. Anthony\'s College, Wattala', '54012180', 'A7', 'A', 0),
-('Sandabomi Bandara', 'Sri Dharmaloka College, Kelaniya', '24782', 'A', 'A', 0),
-('Pratibha Kataria', 'Yoshida Shokanji International', '54096952', 'A', 'A', 0),
-('Senuli U. Perera', 'Holy Cross College, Gampaha', '53889100', 'A', 'A', 0),
-('Ganguni Thisarani', 'Galahitiyawa Central College', '53928300', 'A', 'A', 0),
-('Akil Kameor', 'Sussex College, Kiribathgoda', '54053951', 'A', 'A', 0),
-('Nisalnee Samarasingha', 'Yoshida Shokanji International', '54096987', 'A', 'A', 0),
-('Janindu Wathsara', 'Thakshila College, Gampaha', '53891570', 'A', 'A', 0),
-('Mihin Hewananyake', 'Sri Dharmaloka College, Kelaniya', '200938', 'A', 'A', 0),
-('Lithiru Ravina', 'St. Mary\'s College', '53941446', 'A', 'A', 0),
-('Sachinth Himanga', 'Lyceum International School', '54054231', 'A', 'A', 0),
-('Ninada Edirisinghe', 'Wesley College, Colombo', '53547659', 'A', 'A', 0),
-('Leena Sadath', 'J.M.C International School', '54046394', 'A', 'A', 0),
-('Methuni Sandesna', 'Sapugaskanda Maha Vidyalaya', '54072441', 'A', 'A', 0),
-('Pansiu Reshan', 'Nalanda College, Colombo', '53530411', 'A', 'A', 0),
-('Dinuli Kumarage', 'OKI International School', '54032040', 'A', 'A', 0),
-('Vihara Diyamanti', 'St. Anne\'s Balika Maha Vidyalaya', '54008808', 'A', 'A', 0),
-('Esandi Bimansa', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068266', 'A', 'A', 0),
-('Mesandi Methma', 'Lyceum International School', '54195071', 'A', 'A', 0),
-('Pathum Samuditha', 'Gurukula College, Kelaniya', '54085560', 'A', 'A', 0),
-('Sanitha Sandil', 'Nalanda College, Colombo', '53530195', 'A', 'A', 0),
-('Sayumi Maninsa', 'Private Candidate', '53995325', 'A', 'A', 0),
-('Lishini Avishka', 'Sri Dharmaloka College, Kelaniya', '53961480', 'B', 'B', 0),
-('Senula Randunu', 'St. Joseph\'s College', '53494504', 'B', 'B', 0),
-('Nethasha Methmali', 'Sumedha College, Gampaha', '53914880', 'B', 'B', 0),
-('Dahamika Thisarani', 'Viharamahadevi Balika Vidyalaya', '54068010', 'B', 'B', 0),
-('Dewandi Nuwangana', 'Sri Dharmaloka College, Kelaniya', '54091349', 'B', 'B', 0),
-('Vishmie Konara', 'Sumedha College, Gampaha', '53915453', 'B', 'B', 0),
-('Kavithma Vehangee', 'Sumedha College, Gampaha', '53914767', 'B', 'B', 0),
-('Dewli Yuhansa', 'Sumedha College, Gampaha', '53914651', 'B', 'B', 0),
-('Sethumi Rajapaksha', 'Yasodara Devi Balika Vidyalaya', '53912101', 'B', 'B', 0),
-('Lineth Jayasinghe', 'St. Joseph\'s College', '53494571', 'B', 'B', 0),
-('Monish Dewmina', 'Gurukula College, Kelaniya', '54085438', 'B', 'B', 0),
-('Sewmi Dahamsha', 'Yasodara Devi Balika Vidyalaya', '53565452', 'B', 'B', 0),
-('Sethuli Wickramasinghe', 'Lyceum International School', '53947509', 'B', 'B', 0),
-('Thinuka Sasvidu', 'Sumedha College, Gampaha', '53915712', 'B', 'B', 0),
-('Jalani Bhashitha', 'Doranagoda National School', '54043042', 'B', 'B', 0),
-('Savani Sithumini', 'St. Joseph\'s College', '54008697', 'B', 'B', 0),
-('Sethuni Thihansa', 'Yoshida Shokanji International', '54096944', 'B', 'B', 0),
-('Imeth Pehesara', 'Ananda College, Colombo', '53518730', 'B', 'B', 0)
-ON DUPLICATE KEY UPDATE `student_name`=VALUES(`student_name`), `school`=VALUES(`school`), `grade_badge`=VALUES(`grade_badge`);
-INSERT INTO `national_results` (`student_name`, `school`, `index_no`, `grade_badge`, `letter_grade`, `is_top_champion`)
-VALUES
-('Sanhith Koralagamage', 'St. Peter\'s College, Colombo', '53615158', 'B', 'B', 0),
-('Nethmitha Chanula', 'Lyceum International School', '54054362', 'B', 'B', 0),
-('Niranjan Dhilusan', 'Sumedha College, Gampaha', '53914139', 'B', 'B', 0),
-('Hasini Madushani', 'Vishaka Balika Vidyalaya, Sapugaskanda', '25100', 'B', 'B', 0),
-('Dilru Thehansa', 'Negombo South International School', '53961520', 'B', 'B', 0),
-('Rochelle Andrea', 'Holy Cross College, Gampaha', '53890302', 'B', 'B', 0),
-('Sanketh Samarasinghe', 'Royal College, Colombo 7', '53521400', 'B', 'B', 0),
-('Ranudi Nihansa', 'Sumedha College, Gampaha', '53914368', 'B', 'B', 0),
-('Sanchitha Ranuga', 'St. Anthony\'s College, Wattala', '54012155', 'B', 'B', 0),
-('Lison Helitha', 'York International School', '54054214', 'B', 'B', 0),
-('Vihansa Dinithi', 'Yasodara Devi Balika Vidyalaya', '53565304', 'B', 'B', 0),
-('Sithum Nemsara', 'OKI International School', '54032105', 'B', 'B', 0),
-('Sandali Sinelya', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068240', 'C', 'C', 0),
-('Sithmi Nethumika', 'Sumedha College, Gampaha', '53915585', 'C', 'C', 0),
-('Tishara Senanayake', 'St. Anne\'s Balika Maha Vidyalaya', '54008743', 'C', 'C', 0),
-('Dulina Nethul', 'Sumedha College, Gampaha', '53915739', 'C', 'C', 0),
-('Binori Thathsarani', 'Gurukula College, Kelaniya', '54086817', 'C', 'C', 0),
-('Amanda Deshini', 'J.M.C International School', '54046378', 'C', 'C', 0),
-('Pathumi Peries', 'Private Candidate', '54031907', 'C', 'C', 0)
-ON DUPLICATE KEY UPDATE `student_name`=VALUES(`student_name`), `school`=VALUES(`school`), `grade_badge`=VALUES(`grade_badge`);
 
--- 6. Insert Quizzes (2 modules)
-INSERT INTO `quizzes` (`quiz_uid`, `title`, `subject`, `batch`, `duration_minutes`)
-VALUES
-('quiz-01', 'Speed MCQ Challenge: Business Environment & Stakeholders', 'Business Studies', '2026/2027 O/L Commerce', 15),
-('quiz-02', 'Accounting Quick Drill: Double Entry & Ledger Rules', 'Accounting Studies', '2026/2027 O/L Commerce', 10)
-ON DUPLICATE KEY UPDATE `title`=VALUES(`title`);
 
--- 7. Insert Quiz Questions (8 questions)
-DELETE FROM `quiz_questions`;
-INSERT INTO `quiz_questions` (`quiz_uid`, `question_text`, `options_json`, `correct_answer`, `explanation`)
-VALUES
-('quiz-01', 'Which of the following is considered an internal stakeholder of a business?', '[\"Suppliers\",\"Shareholders/Owners\",\"Government Tax Authority\",\"Customers\"]', 1, 'Owners and employees operate inside the organization, making them internal stakeholders.'),
-('quiz-01', 'What is the primary objective of a commercial enterprise?', '[\"Providing public social welfare\",\"Profit maximization through value creation\",\"Controlling inflation\",\"Collecting government tariffs\"]', 1, 'Commercial entities operate primarily to earn profits while delivering goods and services.'),
-('quiz-01', 'A company that limits shareholder liability to their unpaid share value is known as a:', '[\"Sole proprietorship\",\"Partnership\",\"Limited Liability Company (PLC/LTD)\",\"Cooperative Society\"]', 2, 'In limited liability entities, personal assets of shareholders are legally protected.'),
-('quiz-01', 'The basic accounting equation is represented as:', '[\"Assets = Liabilities - Equity\",\"Assets = Liabilities + Equity\",\"Equity = Assets + Liabilities\",\"Liabilities = Assets + Equity\"]', 1, 'Assets represent what the business owns, funded either by borrowings (Liabilities) or owners (Equity).'),
-('quiz-01', 'When goods are bought on credit, which journal book records the primary entry?', '[\"Sales Journal\",\"Purchases Journal\",\"Cash Book\",\"Petty Cash Book\"]', 1, 'Credit purchases of merchandise inventory are recorded first in the Purchases Journal.'),
-('quiz-02', 'An increase in an Asset account is recorded as a:', '[\"Credit\",\"Debit\",\"Footnote only\",\"Negative adjustment\"]', 1, 'Under double-entry conventions, asset and expense increases are recorded on the debit side.'),
-('quiz-02', 'Rent paid by cash Rs. 25,000 results in:', '[\"Debit Cash, Credit Rent\",\"Debit Rent Expense, Credit Cash\",\"Debit Capital, Credit Cash\",\"Debit Rent, Credit Landlord\"]', 1, 'Rent is an expense (debit increase) and Cash is an asset decreasing (credit decrease).'),
-('quiz-02', 'Which of the following errors is NOT disclosed by a Trial Balance?', '[\"Arithmetic casting error in ledger\",\"Single sided entry error\",\"Compensating error of equal magnitude\",\"Entering different amounts on debit and credit\"]', 2, 'Compensating errors cancel each other out on both debit and credit sides.');
-
--- 8. Insert Evaluations (1 records)
-INSERT INTO `evaluations` (`evaluation_uid`, `student_id`, `paper_or_term`, `evaluation_date`, `attendance_rate`, `strengths`, `weaknesses`, `teacher_remarks`, `recommended_action`, `performance_grade`)
-VALUES
-('eval-01', 'std-001', 'Paper Class 01-03 Cumulative Review', '2026-03-25', 98, '[\"Exceptional accuracy in Part 1 multiple choice questions (average 38/40).\",\"Very neat and structured balance sheet layouts.\",\"Clear explanation in 5-mark business studies essay answers.\"]', '[\"Occasionally forgets to write proper narrative ledger descriptions.\",\"Needs slight speed optimization when balancing 10-column financial statements.\"]', 'Senuri is demonstrating consistent A-grade caliber. Her attention to detail in ledger accounts and accounting definitions is commendable. Keep this momentum for the final national exam!', 'Practice 1 timed 20-mark final account essay every weekend under 25-minute examination conditions.', 'Outstanding')
-ON DUPLICATE KEY UPDATE `teacher_remarks`=VALUES(`teacher_remarks`);
+-- ========================================================
+-- National Distinction Results (169+ Authenticated Achievers)
+-- ========================================================
+INSERT INTO `national_results` (`student_name`, `school`, `index_no`, `year`, `grade_badge`, `letter_grade`, `is_top_champion`, `quote`, `avatar_image`) VALUES
+('Yashodhini Vihara', 'Devi Balika Vidyalaya, Colombo', '53560574', 2025, 'A9', 'A', 1, NULL, NULL),
+('Akithra Induwari', 'Ananda Balika Vidyalaya, Colombo', '53511450', 2025, 'A9', 'A', 1, NULL, NULL),
+('Hasal Samaranayake', 'Ananda College, Colombo', '53519028', 2025, 'A9', 'A', 1, NULL, NULL),
+('Vidun Wickramasinghe', 'Sumedha College, Gampaha', '53914473', 2025, 'A9', 'A', 1, NULL, NULL),
+('Tenushi Pamodya', 'Sumedha College, Gampaha', '53914864', 2025, 'A9', 'A', 1, NULL, NULL),
+('Senal Rajapakse', 'Sussex College, Kiribathgoda', '54054133', 2025, 'A9', 'A', 1, NULL, NULL),
+('W.W.M. Panchanga', 'Asoka College, Colombo 10', '53523938', 2025, 'A9', 'A', 1, NULL, NULL),
+('Shehan Rashmitha', 'Bandaranayake College, Gampaha', '53884477', 2025, 'A9', 'A', 1, NULL, NULL),
+('Desandi Thinara', 'Bandaranayake Central College, Veyangoda', '53936817', 2025, 'A9', 'A', 1, NULL, NULL),
+('Deneth Nimtharu', 'Thurstan College, Colombo', '53582012', 2025, 'A9', 'A', 1, NULL, NULL),
+('Sethmi Thehasna', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068177', 2025, 'A9', 'A', 1, NULL, NULL),
+('Minradha Ranasinghe', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068231', 2025, 'A9', 'A', 1, NULL, NULL),
+('Disas Harshana', 'Bandaranayake Central College, Veyangoda', '53936671', 2025, 'A9', 'A', 1, NULL, NULL),
+('Linuka Damsanda', 'Bandaranayake College, Gampaha', '53884191', 2025, 'A9', 'A', 1, NULL, NULL),
+('Damithu Thenujaya', 'Bandaranayake College, Gampaha', '53883780', 2025, 'A9', 'A', 1, NULL, NULL),
+('Sawani Pamalya', 'Viharamahadevi Balika Vidyalaya', '54067928', 2025, 'A9', 'A', 1, NULL, NULL),
+('Yoshini Mihindi', 'Viharamahadevi Balika Vidyalaya', '54068363', 2025, 'A9', 'A', 1, NULL, NULL),
+('Vidath Damsara', 'Bandaranayake College, Gampaha', '53884485', 2025, 'A9', 'A', 1, NULL, NULL),
+('Miyuru Vishwajith', 'Bandaranayake College, Gampaha', '53883616', 2025, 'A9', 'A', 1, NULL, NULL),
+('Pesandu Lukdiw', 'Bandaranayake College, Gampaha', '53883918', 2025, 'A9', 'A', 1, NULL, NULL),
+('Malki Nimthara', 'Yasodara Devi Balika Vidyalaya', '53912209', 2025, 'A9', 'A', 1, NULL, NULL),
+('Inudi Hesansa', 'Yasodara Devi Balika Vidyalaya', '53912560', 2025, 'A9', 'A', 1, NULL, NULL),
+('Devangi Amarasinghe', 'Yasodara Devi Balika Vidyalaya', '53912470', 2025, 'A9', 'A', 1, NULL, NULL),
+('Senuth Dinsara', 'Bandaranayake College, Gampaha', '53884493', 2025, 'A9', 'A', 1, NULL, NULL),
+('Ehansa Kurukulasuriya', 'Bishops College, Colombo', '53506189', 2025, 'A9', 'A', 1, NULL, NULL),
+('Kulitha Ranudaya', 'Britishway International School, Nittambuwa', '54271010', 2025, 'A9', 'A', 1, NULL, NULL),
+('Minoli Sadithma', 'Negombo South International School', '53961480', 2025, 'A9', 'A', 1, NULL, NULL),
+('Danuli De Silva', 'Devi Balika Vidyalaya, Colombo', '53560841', 2025, 'A9', 'A', 1, NULL, NULL),
+('Duveesha Amarasinghe', 'Gothami Balika Vidyalaya, Colombo', '53524330', 2025, 'A9', 'A', 1, NULL, NULL),
+('Buthsara Dinumuthu', 'Gurukula College, Kelaniya', '54085470', 2025, 'A9', 'A', 1, NULL, NULL),
+('Kajini Kashmira', 'Gurukula College, Kelaniya', '54086736', 2025, 'A9', 'A', 1, NULL, NULL),
+('Adhithi Alwis', 'Holy Cross College, Gampaha', '53890949', 2025, 'A9', 'A', 1, NULL, NULL),
+('Nevinka Fernando', 'Holy Cross College, Gampaha', '53890744', 2025, 'A9', 'A', 1, NULL, NULL),
+('Chathuni Jayasinghe', 'Holy Cross College, Gampaha', '53891015', 2025, 'A9', 'A', 1, NULL, NULL),
+('Dulithi Nevithma', 'Holy Cross College, Gampaha', '53891040', 2025, 'A9', 'A', 1, NULL, NULL),
+('Sandesh Ayodhya', 'Karunarathna Buddhist College, Mathumagala', '54001650', 2025, 'A9', 'A', 1, NULL, NULL),
+('Ovini Nithasha', 'Mahamaya Girls College, Kadawatha', '54052360', 2025, 'A9', 'A', 1, NULL, NULL),
+('Kavi Rivisahan', 'Mahanama College, Colombo', '53586301', 2025, 'A9', 'A', 1, NULL, NULL),
+('Hesali Alwis', 'Musaeus College, Colombo', '53554396', 2025, 'A9', 'A', 1, NULL, NULL),
+('Nethuki Lehansa', 'Musaeus College, Colombo', '53553250', 2025, 'A9', 'A', 1, NULL, NULL),
+('Kumali Herath', 'Musaeus College, Colombo', '53553290', 2025, 'A9', 'A', 1, NULL, NULL),
+('Chanuga Walpola', 'Nalanda College, Colombo', '53530357', 2025, 'A9', 'A', 1, NULL, NULL),
+('Virajitha Nitheesh', 'Negombo South International School', '53961463', 2025, 'A9', 'A', 1, NULL, NULL),
+('Maheema Sithumini', 'Rathnavali Balika Vidyalaya, Gampaha', '53923324', 2025, 'A9', 'A', 1, NULL, NULL),
+('Gehara Dharmasri', 'Rathnavali Balika Vidyalaya, Gampaha', '53923383', 2025, 'A9', 'A', 1, NULL, NULL),
+('Geehara Anusari', 'Sirimavo Bandaranaike Vidyalaya, Colombo', '53605900', 2025, 'A9', 'A', 1, NULL, NULL),
+('Kisal Weerakone', 'St. Joseph''s College, Colombo', '53494644', 2025, 'A9', 'A', 1, NULL, NULL),
+('Denith Manthuja', 'St. Joseph''s College', '25047936', 2025, 'A9', 'A', 1, NULL, NULL),
+('Kevin Adrian', 'St. Joseph''s College', '53494296', 2025, 'A9', 'A', 1, NULL, NULL),
+('Vinudi Dahamila', 'Sumedha College, Gampaha', '53914708', 2025, 'A9', 'A', 1, NULL, NULL),
+('Mihindi Dias', 'Yoshida Shokanji International', '53734017', 2025, 'A8', 'A', 0, NULL, NULL),
+('Sasika Tharupathi', 'Gurukula College, Kelaniya', '54085411', 2025, 'A8', 'A', 0, NULL, NULL),
+('Yasith Gunathilake', 'Ananda College, Colombo', '53518578', 2025, 'A8', 'A', 0, NULL, NULL),
+('Sinura Vidun', 'Ananda College, Colombo', '53519930', 2025, 'A8', 'A', 0, NULL, NULL),
+('Nethaka Vinsith', 'Asoka College, Colombo 10', '53523830', 2025, 'A8', 'A', 0, NULL, NULL),
+('Dulmika Ransen', 'Gurukula College, Kelaniya', '54085519', 2025, 'A8', 'A', 0, NULL, NULL),
+('Isindu Kethmin', 'Gurukula College, Kelaniya', '54085373', 2025, 'A8', 'A', 0, NULL, NULL),
+('Amasha Fernando', 'Holy Cross College, Gampaha', '53890884', 2025, 'A8', 'A', 0, NULL, NULL),
+('H.M.N. Ahasna', 'Lyceum International School', '54096332', 2025, 'A8', 'A', 0, NULL, NULL),
+('Oneli Lithasha', 'Mahamaya Girls College, Kadawatha', '54052432', 2025, 'A8', 'A', 0, NULL, NULL),
+('Jayith Sandira', 'Mahanama College, Colombo', '53586603', 2025, 'A8', 'A', 0, NULL, NULL),
+('Nisira Nimsara', 'Mahanama College, Colombo', '53586638', 2025, 'A8', 'A', 0, NULL, NULL),
+('Kusalya Indrawansa', 'Musaeus College, Colombo', '53554647', 2025, 'A8', 'A', 0, NULL, NULL),
+('Piyumali Jayasinghe', 'Musaeus College, Colombo', '53554507', 2025, 'A8', 'A', 0, NULL, NULL),
+('Shehara Dewwini', 'OKI International School', '54032075', 2025, 'A8', 'A', 0, NULL, NULL),
+('Shwetha Amashi', 'Rathnavali Balika Vidyalaya, Gampaha', '53923057', 2025, 'A8', 'A', 0, NULL, NULL),
+('Sanuka Devnija', 'S. Thomas'' Preparatory School, Kollupitiya', '54600541', 2025, 'A8', 'A', 0, NULL, NULL),
+('Anushari Keshangi', 'Sapugaskanda Vishaka Balika Vidyalaya', '54074177', 2025, 'A8', 'A', 0, NULL, NULL),
+('Kris Fernando', 'St. Joseph''s College', '53494954', 2025, 'A8', 'A', 0, NULL, NULL),
+('Nadeeja Oshada', 'St. Joseph''s College', '54017343', 2025, 'A8', 'A', 0, NULL, NULL),
+('Ramika Dharmawardana', 'Sumedha College, Gampaha', '53914589', 2025, 'A8', 'A', 0, NULL, NULL),
+('Mahimi Theersha', 'Sumedha College, Gampaha', '53914775', 2025, 'A8', 'A', 0, NULL, NULL),
+('Osanda Dinsara', 'Sumedha College, Gampaha', '53914554', 2025, 'A8', 'A', 0, NULL, NULL),
+('Gihansa Ranumi', 'Sumedha College, Gampaha', '53914660', 2025, 'A8', 'A', 0, NULL, NULL),
+('Sanuki Sanulya', 'Sumedha College, Gampaha', '53914805', 2025, 'A8', 'A', 0, NULL, NULL),
+('Sajana Insara', 'Sumedha College, Gampaha', '53914546', 2025, 'A8', 'A', 0, NULL, NULL),
+('Thehan Nimsara', 'Sussex College, Kiribathgoda', '54051525', 2025, 'A8', 'A', 0, NULL, NULL),
+('Vihanga Bandara', 'Thurstan College, Colombo', '53581997', 2025, 'A8', 'A', 0, NULL, NULL),
+('Senuthi Udhamsa', 'Viharamahadevi Balika Vidyalaya', '54067901', 2025, 'A8', 'A', 0, NULL, NULL),
+('Siluni Himandee', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074452', 2025, 'A8', 'A', 0, NULL, NULL),
+('Supipi Vidarshana', 'Yasodara Devi Balika Vidyalaya', '53912217', 2025, 'A8', 'A', 0, NULL, NULL),
+('Ashvini Deeshana', 'Yasodara Devi Balika Vidyalaya', '53911172', 2025, 'A8', 'A', 0, NULL, NULL),
+('Mahith Shervin', 'York International School', '54036330', 2025, 'A8', 'A', 0, NULL, NULL),
+('Mathista Prabashwara', 'York International School', '54036283', 2025, 'A8', 'A', 0, NULL, NULL),
+('Daham Iroshana', 'Yoshida Shokanji International', '54096731', 2025, 'A8', 'A', 0, NULL, NULL),
+('Chithira Thilakaweera', 'D.S. Senanayake College, Colombo', '53556216', 2025, 'A7', 'A', 0, NULL, NULL),
+('Adeesha Nimsarani', 'Yasodara Devi Balika Vidyalaya', '53912667', 2025, 'A7', 'A', 0, NULL, NULL),
+('Nadinsa Wickramasingha', 'Holy Cross College, Gampaha', '53890922', 2025, 'A7', 'A', 0, NULL, NULL),
+('Methushi Bopearatchy', 'Holy Family Convent, Bambalapitiya', '53603222', 2025, 'A7', 'A', 0, NULL, NULL),
+('Mihin Gulawita', 'Lyceum International School', '53920538', 2025, 'A7', 'A', 0, NULL, NULL),
+('Imira Sethmika', 'Mahanama College, Colombo', '53586565', 2025, 'A7', 'A', 0, NULL, NULL),
+('Risindi Nethsandi', 'Musaeus College, Colombo', '53553810', 2025, 'A7', 'A', 0, NULL, NULL),
+('Lohansa Natharie', 'Sapugaskanda Vishaka Balika Vidyalaya', '54074150', 2025, 'A7', 'A', 0, NULL, NULL),
+('Kaveesha Ranindu', 'Sri Dharmaloka College, Kelaniya', '54091250', 2025, 'A7', 'A', 0, NULL, NULL),
+('Sithuki Nelithma', 'Sri Sanghabodhi National School', '53951360', 2025, 'A7', 'A', 0, NULL, NULL),
+('N.L.D. Thilakarathne', 'Sri Sanghabodhi National School', '53951280', 2025, 'A7', 'A', 0, NULL, NULL),
+('Pawara Nethsilu', 'St. Joseph''s College', '5401731', 2025, 'A7', 'A', 0, NULL, NULL),
+('Abheetha Basuru', 'St. Joseph''s College', '54017262', 2025, 'A7', 'A', 0, NULL, NULL),
+('Kaveesha Manasith', 'Sumedha College, Gampaha', '53914228', 2025, 'A7', 'A', 0, NULL, NULL),
+('Hiruka Randiew', 'Sumedha College, Gampaha', '53914961', 2025, 'A7', 'A', 0, NULL, NULL),
+('Yehara Sinadi', 'Thakshila College, Gampaha', '53891791', 2025, 'A7', 'A', 0, NULL, NULL),
+('Rusandu Thanuwara', 'Thakshila College, Gampaha', '53891554', 2025, 'A7', 'A', 0, NULL, NULL),
+('Jayali Sandareka', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074363', 2025, 'A7', 'A', 0, NULL, NULL),
+('Sanulya Ransadee', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074215', 2025, 'A7', 'A', 0, NULL, NULL),
+('Thinuga Gunawardana', 'Wesley College, Colombo', '53547616', 2025, 'A7', 'A', 0, NULL, NULL),
+('Nethuli Nuhansa', 'Yasodara Devi Balika Vidyalaya', '53912764', 2025, 'A7', 'A', 0, NULL, NULL),
+('Dulansa Sayumdi', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074371', 2025, 'A7', 'A', 0, NULL, NULL),
+('Thiseni Yohansa', 'Yasodara Devi Balika Vidyalaya', '53912233', 2025, 'A7', 'A', 0, NULL, NULL),
+('Jethmi Sethumya', 'Vishaka Balika Vidyalaya, Sapugaskanda', '54074347', 2025, 'A7', 'A', 0, NULL, NULL),
+('Shanuka Nethsara', 'Bandaranayake College, Gampaha', '53884531', 2025, 'A7', 'A', 0, NULL, NULL),
+('Fahad Feroz', 'St. Anthony''s College, Wattala', '54012180', 2025, 'A7', 'A', 0, NULL, NULL),
+('Sandabomi Bandara', 'Sri Dharmaloka College, Kelaniya', '24782', 2025, 'A', 'A', 0, NULL, NULL),
+('Pratibha Kataria', 'Yoshida Shokanji International', '54096952', 2025, 'A', 'A', 0, NULL, NULL),
+('Senuli U. Perera', 'Holy Cross College, Gampaha', '53889100', 2025, 'A', 'A', 0, NULL, NULL),
+('Ganguni Thisarani', 'Galahitiyawa Central College', '53928300', 2025, 'A', 'A', 0, NULL, NULL),
+('Akil Kameor', 'Sussex College, Kiribathgoda', '54053951', 2025, 'A', 'A', 0, NULL, NULL),
+('Nisalnee Samarasingha', 'Yoshida Shokanji International', '54096987', 2025, 'A', 'A', 0, NULL, NULL),
+('Janindu Wathsara', 'Thakshila College, Gampaha', '53891570', 2025, 'A', 'A', 0, NULL, NULL),
+('Mihin Hewananyake', 'Sri Dharmaloka College, Kelaniya', '200938', 2025, 'A', 'A', 0, NULL, NULL),
+('Lithiru Ravina', 'St. Mary''s College', '53941446', 2025, 'A', 'A', 0, NULL, NULL),
+('Sachinth Himanga', 'Lyceum International School', '54054231', 2025, 'A', 'A', 0, NULL, NULL),
+('Ninada Edirisinghe', 'Wesley College, Colombo', '53547659', 2025, 'A', 'A', 0, NULL, NULL),
+('Leena Sadath', 'J.M.C International School', '54046394', 2025, 'A', 'A', 0, NULL, NULL),
+('Methuni Sandesna', 'Sapugaskanda Maha Vidyalaya', '54072441', 2025, 'A', 'A', 0, NULL, NULL),
+('Pansiu Reshan', 'Nalanda College, Colombo', '53530411', 2025, 'A', 'A', 0, NULL, NULL),
+('Dinuli Kumarage', 'OKI International School', '54032040', 2025, 'A', 'A', 0, NULL, NULL),
+('Vihara Diyamanti', 'St. Anne''s Balika Maha Vidyalaya', '54008808', 2025, 'A', 'A', 0, NULL, NULL),
+('Esandi Bimansa', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068266', 2025, 'A', 'A', 0, NULL, NULL),
+('Mesandi Methma', 'Lyceum International School', '54195071', 2025, 'A', 'A', 0, NULL, NULL),
+('Pathum Samuditha', 'Gurukula College, Kelaniya', '54085560', 2025, 'A', 'A', 0, NULL, NULL),
+('Sanitha Sandil', 'Nalanda College, Colombo', '53530195', 2025, 'A', 'A', 0, NULL, NULL),
+('Sayumi Maninsa', 'Private Candidate', '53995325', 2025, 'A', 'A', 0, NULL, NULL),
+('Lishini Avishka', 'Sri Dharmaloka College, Kelaniya', '53961480', 2025, 'B', 'B', 0, NULL, NULL),
+('Senula Randunu', 'St. Joseph''s College', '53494504', 2025, 'B', 'B', 0, NULL, NULL),
+('Nethasha Methmali', 'Sumedha College, Gampaha', '53914880', 2025, 'B', 'B', 0, NULL, NULL),
+('Dahamika Thisarani', 'Viharamahadevi Balika Vidyalaya', '54068010', 2025, 'B', 'B', 0, NULL, NULL),
+('Dewandi Nuwangana', 'Sri Dharmaloka College, Kelaniya', '54091349', 2025, 'B', 'B', 0, NULL, NULL),
+('Vishmie Konara', 'Sumedha College, Gampaha', '53915453', 2025, 'B', 'B', 0, NULL, NULL),
+('Kavithma Vehangee', 'Sumedha College, Gampaha', '53914767', 2025, 'B', 'B', 0, NULL, NULL),
+('Dewli Yuhansa', 'Sumedha College, Gampaha', '53914651', 2025, 'B', 'B', 0, NULL, NULL),
+('Sethumi Rajapaksha', 'Yasodara Devi Balika Vidyalaya', '53912101', 2025, 'B', 'B', 0, NULL, NULL),
+('Lineth Jayasinghe', 'St. Joseph''s College', '53494571', 2025, 'B', 'B', 0, NULL, NULL),
+('Monish Dewmina', 'Gurukula College, Kelaniya', '54085438', 2025, 'B', 'B', 0, NULL, NULL),
+('Sewmi Dahamsha', 'Yasodara Devi Balika Vidyalaya', '53565452', 2025, 'B', 'B', 0, NULL, NULL),
+('Sethuli Wickramasinghe', 'Lyceum International School', '53947509', 2025, 'B', 'B', 0, NULL, NULL),
+('Thinuka Sasvidu', 'Sumedha College, Gampaha', '53915712', 2025, 'B', 'B', 0, NULL, NULL),
+('Jalani Bhashitha', 'Doranagoda National School', '54043042', 2025, 'B', 'B', 0, NULL, NULL),
+('Savani Sithumini', 'St. Joseph''s College', '54008697', 2025, 'B', 'B', 0, NULL, NULL),
+('Sethuni Thihansa', 'Yoshida Shokanji International', '54096944', 2025, 'B', 'B', 0, NULL, NULL),
+('Imeth Pehesara', 'Ananda College, Colombo', '53518730', 2025, 'B', 'B', 0, NULL, NULL),
+('Sanhith Koralagamage', 'St. Peter''s College, Colombo', '53615158', 2025, 'B', 'B', 0, NULL, NULL),
+('Nethmitha Chanula', 'Lyceum International School', '54054362', 2025, 'B', 'B', 0, NULL, NULL),
+('Niranjan Dhilusan', 'Sumedha College, Gampaha', '53914139', 2025, 'B', 'B', 0, NULL, NULL),
+('Hasini Madushani', 'Vishaka Balika Vidyalaya, Sapugaskanda', '25100', 2025, 'B', 'B', 0, NULL, NULL),
+('Dilru Thehansa', 'Negombo South International School', '53961520', 2025, 'B', 'B', 0, NULL, NULL),
+('Rochelle Andrea', 'Holy Cross College, Gampaha', '53890302', 2025, 'B', 'B', 0, NULL, NULL),
+('Sanketh Samarasinghe', 'Royal College, Colombo 7', '53521400', 2025, 'B', 'B', 0, NULL, NULL),
+('Ranudi Nihansa', 'Sumedha College, Gampaha', '53914368', 2025, 'B', 'B', 0, NULL, NULL),
+('Sanchitha Ranuga', 'St. Anthony''s College, Wattala', '54012155', 2025, 'B', 'B', 0, NULL, NULL),
+('Lison Helitha', 'York International School', '54054214', 2025, 'B', 'B', 0, NULL, NULL),
+('Vihansa Dinithi', 'Yasodara Devi Balika Vidyalaya', '53565304', 2025, 'B', 'B', 0, NULL, NULL),
+('Sithum Nemsara', 'OKI International School', '54032105', 2025, 'B', 'B', 0, NULL, NULL),
+('Sandali Sinelya', 'Viharamahadevi Balika Vidyalaya, Kiribathgoda', '54068240', 2025, 'C', 'C', 0, NULL, NULL),
+('Sithmi Nethumika', 'Sumedha College, Gampaha', '53915585', 2025, 'C', 'C', 0, NULL, NULL),
+('Tishara Senanayake', 'St. Anne''s Balika Maha Vidyalaya', '54008743', 2025, 'C', 'C', 0, NULL, NULL),
+('Dulina Nethul', 'Sumedha College, Gampaha', '53915739', 2025, 'C', 'C', 0, NULL, NULL),
+('Binori Thathsarani', 'Gurukula College, Kelaniya', '54086817', 2025, 'C', 'C', 0, NULL, NULL),
+('Amanda Deshini', 'J.M.C International School', '54046378', 2025, 'C', 'C', 0, NULL, NULL),
+('Pathumi Peries', 'Private Candidate', '54031907', 2025, 'C', 'C', 0, NULL, NULL)
+ON DUPLICATE KEY UPDATE `student_name`=VALUES(`student_name`), `school`=VALUES(`school`), `grade_badge`=VALUES(`grade_badge`), `letter_grade`=VALUES(`letter_grade`), `is_top_champion`=VALUES(`is_top_champion`), `year`=VALUES(`year`);

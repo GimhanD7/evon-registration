@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   GraduationCap,
   Sparkles,
-  ArrowLeft,
   LogOut,
   Menu,
   Lock,
@@ -90,13 +89,6 @@ export default function LmsHeader({
               <span>Online Session</span>
             </div>
           )}
-
-          <Link
-            href="/"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#cddce5] bg-white px-3 py-1.5 text-xs font-bold text-[#60768a] hover:bg-[#edf2f3] hover:text-[#102c45] transition-colors shadow-xs"
-          >
-            <ArrowLeft size={13} /> Exit to Site
-          </Link>
 
           {/* User Profile Chip: Hidden on mobile, visible on md+ (already in mobile drawer) */}
           <div className="hidden md:flex items-center gap-2.5 rounded-full border border-[#cddce5] bg-white py-1 pr-3 pl-1.5 shadow-xs">

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg10" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#bg10)"/>
+  <!-- Headphones on Head -->
+  <path d="M34 54 C32 30 46 22 60 22 C74 22 88 30 86 54" fill="none" stroke="#f43f5e" stroke-width="4"/>
+  <rect x="30" y="48" width="8" height="16" rx="4" fill="#e11d48"/>
+  <rect x="82" y="48" width="8" height="16" rx="4" fill="#e11d48"/>
+  <!-- Body (Hoodie) -->
+  <path d="M26 110 C26 88 42 82 60 82 C78 82 94 88 94 110 Z" fill="#042f2e"/>
+  <path d="M48 82 Q60 100 72 82" fill="#134e4a"/>
+  <!-- Neck -->
+  <rect x="52" y="70" width="16" height="16" rx="4" fill="#fed7aa"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="54" rx="22" ry="24" fill="#fed7aa"/>
+  <!-- Hair Trendy Fringe -->
+  <path d="M38 46 C38 32 46 26 60 26 C74 26 82 32 82 46 C78 38 68 34 58 34 C48 34 42 40 38 46 Z" fill="#1e293b"/>
+  <!-- Cool Smug Eyes -->
+  <path d="M46 52 Q51 49 56 52" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M64 52 Q69 49 74 52" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="51" cy="54" r="1.5" fill="#0f172a"/>
+  <circle cx="69" cy="54" r="1.5" fill="#0f172a"/>
+  <!-- Cool Smirk -->
+  <path d="M54 65 Q62 68 67 63" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

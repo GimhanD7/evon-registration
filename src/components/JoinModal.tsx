@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   X,
@@ -20,7 +20,14 @@ import {
   ShieldCheck,
   AlertCircle,
 } from "lucide-react";
-import { registerLmsStudent, setCurrentLmsUser, LMSUser } from "@/lib/lmsStore";
+import { registerLmsStudent, setCurrentLmsUser, LMSUser, useLmsBatches } from "@/lib/lmsStore";
+import { logActivity } from "@/lib/activityLogService";
+import {
+  validateFullName,
+  validateWhatsAppPhone,
+  validatePassword,
+  validateSchool,
+} from "@/lib/validation";
 
 interface JoinModalProps {
   isOpen: boolean;
@@ -36,17 +43,30 @@ export default function JoinModal({
   onOpenLogin,
 }: JoinModalProps) {
   const router = useRouter();
+  const { batches: dbBatches } = useLmsBatches();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [school, setSchool] = useState("");
   const [district, setDistrict] = useState("Colombo");
-  const [examYear, setExamYear] = useState(
-    initialCourse?.match(/\b202[567]\b/)?.[0] ?? "2027G10"
-  );
+  const [selectedBatch, setSelectedBatch] = useState<string>(() => {
+    if (initialCourse && dbBatches.includes(initialCourse)) return initialCourse;
+    return dbBatches[0] || "2026/2027 O/L Commerce";
+  });
   const [medium, setMedium] = useState("English Medium");
   const [mode, setMode] = useState("Islandwide Online (Live + Recordings)");
+
+  useEffect(() => {
+    if (initialCourse && dbBatches.length > 0) {
+      const match = dbBatches.find(
+        (b) =>
+          b.toLowerCase().includes(initialCourse.toLowerCase()) ||
+          initialCourse.toLowerCase().includes(b.toLowerCase())
+      );
+      if (match) setSelectedBatch(match);
+    }
+  }, [initialCourse, dbBatches]);
 
   // State after submission
   const [isLoading, setIsLoading] = useState(false);
@@ -57,38 +77,57 @@ export default function JoinModal({
   const [copiedIndex, setCopiedIndex] = useState(false);
   const [showSavedPassword, setShowSavedPassword] = useState(false);
 
+  // Field Touched & Validation State
+  const [touched, setTouched] = useState<{
+    name?: boolean;
+    phone?: boolean;
+    password?: boolean;
+    school?: boolean;
+  }>({});
+
+  const nameValidation = useMemo(() => validateFullName(name), [name]);
+  const phoneValidation = useMemo(() => validateWhatsAppPhone(phone), [phone]);
+  const passwordValidation = useMemo(() => validatePassword(password), [password]);
+  const schoolValidation = useMemo(() => validateSchool(school, false), [school]);
+
+  const handleBlur = (field: "name" | "phone" | "password" | "school") => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
-    const cleanName = name.trim();
-    const cleanPhone = phone.trim();
-    const cleanPass = password.trim();
+    // Mark all fields as touched for visual feedback
+    setTouched({ name: true, phone: true, password: true, school: true });
 
-    if (!cleanName) {
-      setErrorMessage("Please enter student's full name.");
+    if (!nameValidation.valid) {
+      setErrorMessage(nameValidation.error || "Please enter student's full name.");
       return;
     }
-    if (!cleanPhone || cleanPhone.length < 9) {
-      setErrorMessage("Please enter a valid WhatsApp mobile phone number.");
+    if (!phoneValidation.valid) {
+      setErrorMessage(phoneValidation.error || "Please enter a valid WhatsApp mobile number.");
       return;
     }
-    if (!cleanPass || cleanPass.length < 4) {
-      setErrorMessage("Please create a password of at least 4 characters.");
+    if (!passwordValidation.valid) {
+      setErrorMessage(passwordValidation.error || "Please create a password of at least 4 characters.");
       return;
     }
+    if (!schoolValidation.valid) {
+      setErrorMessage(schoolValidation.error || "Please enter student's school name.");
+      return;
+    }
+
+    const cleanName = name.trim();
+    const cleanPhone = phoneValidation.normalized || phone.trim();
+    const cleanPass = password.trim();
 
     setIsLoading(true);
 
     try {
-      const batchTitle =
-        examYear === "2027G10"
-          ? `2027 O/L Grade 10 Foundation (${medium})`
-          : examYear === "2027G11"
-          ? `2026/2027 Grade 11 Theory (${medium})`
-          : `2026 O/L Speed Revision & Paper Class (${medium})`;
+      const batchTitle = selectedBatch || dbBatches[0] || "2026/2027 O/L Commerce";
 
       const result = await registerLmsStudent({
         fullName: cleanName,
@@ -104,6 +143,13 @@ export default function JoinModal({
         setRegisteredIndexNo(result.user.indexNo || result.indexNo || "");
         setRegisteredUser(result.user);
         setSubmitted(true);
+        logActivity(
+          "New Student Registration",
+          "user_management",
+          `Registered account: ${result.user.fullName} (${result.user.phone}) • Batch: ${result.user.batch}`,
+          result.user,
+          "success"
+        );
       } else {
         setErrorMessage(
           result.error ||
@@ -324,47 +370,128 @@ export default function JoinModal({
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               {/* Full Name */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
-                  <User size={13} className="text-[#007fb8]" /> Full Name of Student *
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
+                    <User size={13} className="text-[#007fb8]" /> Full Name of Student *
+                  </label>
+                  {touched.name && (
+                    nameValidation.valid ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#159366]">
+                        <CheckCircle2 size={12} /> Valid Name
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                        <AlertCircle size={12} /> {nameValidation.error}
+                      </span>
+                    )
+                  )}
+                </div>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Kasun Fernando"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!touched.name) setTouched((prev) => ({ ...prev, name: true }));
+                  }}
+                  onBlur={() => handleBlur("name")}
+                  className={`w-full rounded-xl border px-3.5 py-2.5 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors ${
+                    touched.name
+                      ? nameValidation.valid
+                        ? "border-[#38d995] bg-[#edf9f3]/40 focus:border-[#159366]"
+                        : "border-red-400 bg-red-50/40 focus:border-red-500"
+                      : "border-[#cddce5] bg-[#f8fafc] focus:border-[#007fb8] focus:bg-white"
+                  }`}
                 />
               </div>
 
               {/* Mobile Phone & Password Row */}
               <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+                {/* WhatsApp Phone */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
-                    <Phone size={13} className="text-[#007fb8]" /> WhatsApp Phone *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
+                      <Phone size={13} className="text-[#007fb8]" /> WhatsApp Phone *
+                    </label>
+                    {touched.phone && (
+                      phoneValidation.valid ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#159366]">
+                          <CheckCircle2 size={12} /> Valid WhatsApp
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                          <AlertCircle size={12} /> Invalid Phone
+                        </span>
+                      )
+                    )}
+                  </div>
                   <input
                     type="tel"
                     required
-                    placeholder="07X XXX XXXX"
+                    placeholder="07X XXX XXXX (10 digits)"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (!touched.phone) setTouched((prev) => ({ ...prev, phone: true }));
+                    }}
+                    onBlur={() => handleBlur("phone")}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors ${
+                      touched.phone
+                        ? phoneValidation.valid
+                          ? "border-[#38d995] bg-[#edf9f3]/40 focus:border-[#159366]"
+                          : "border-red-400 bg-red-50/40 focus:border-red-500"
+                        : "border-[#cddce5] bg-[#f8fafc] focus:border-[#007fb8] focus:bg-white"
+                    }`}
                   />
+                  {touched.phone && !phoneValidation.valid ? (
+                    <p className="text-[10.5px] font-semibold text-red-600 flex items-center gap-1">
+                      <AlertCircle size={11} className="shrink-0" />
+                      <span>{phoneValidation.error}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-[#60768a]">
+                      10 digits starting with 07 (e.g. 0771234567)
+                    </p>
+                  )}
                 </div>
 
+                {/* Password */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
-                    <Lock size={13} className="text-[#007fb8]" /> LMS Password *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
+                      <Lock size={13} className="text-[#007fb8]" /> LMS Password *
+                    </label>
+                    {touched.password && (
+                      passwordValidation.valid ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#159366]">
+                          <CheckCircle2 size={12} /> Valid Password
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                          <AlertCircle size={12} /> Too Short
+                        </span>
+                      )
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
                       required
                       placeholder="Min. 4 characters"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 pr-9 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (!touched.password) setTouched((prev) => ({ ...prev, password: true }));
+                      }}
+                      onBlur={() => handleBlur("password")}
+                      className={`w-full rounded-xl border px-3.5 py-2.5 pr-9 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors ${
+                        touched.password
+                          ? passwordValidation.valid
+                            ? "border-[#38d995] bg-[#edf9f3]/40 focus:border-[#159366]"
+                            : "border-red-400 bg-red-50/40 focus:border-red-500"
+                          : "border-[#cddce5] bg-[#f8fafc] focus:border-[#007fb8] focus:bg-white"
+                      }`}
                     />
                     <button
                       type="button"
@@ -375,6 +502,16 @@ export default function JoinModal({
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
+                  {touched.password && !passwordValidation.valid ? (
+                    <p className="text-[10.5px] font-semibold text-red-600 flex items-center gap-1">
+                      <AlertCircle size={11} className="shrink-0" />
+                      <span>{passwordValidation.error}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-[#60768a]">
+                      Min. 4 characters required for LMS access
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -382,16 +519,18 @@ export default function JoinModal({
               <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
-                    <GraduationCap size={13} className="text-[#007fb8]" /> Target Batch *
+                    <GraduationCap size={13} className="text-[#007fb8]" /> Commerce Batch Enrolled *
                   </label>
                   <select
-                    value={examYear}
-                    onChange={(e) => setExamYear(e.target.value)}
-                    className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 text-base sm:text-xs font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    className="w-full rounded-xl border border-[#38d995]/60 bg-[#edf9f3]/30 px-3.5 py-2.5 text-base sm:text-xs font-bold text-[#102c45] outline-none transition-colors focus:border-[#159366] focus:bg-white cursor-pointer"
                   >
-                    <option value="2027G10">2027 O/L Grade 10 Foundation</option>
-                    <option value="2027G11">2026/2027 Grade 11 Theory</option>
-                    <option value="2026Paper">2026 O/L Speed Revision &amp; Papers</option>
+                    {dbBatches.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -416,7 +555,7 @@ export default function JoinModal({
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 text-base sm:text-xs font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 text-base sm:text-xs font-bold text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white cursor-pointer"
                   >
                     <option value="Colombo">Colombo</option>
                     <option value="Gampaha">Gampaha</option>
@@ -430,16 +569,37 @@ export default function JoinModal({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
-                    <School size={13} className="text-[#007fb8]" /> School Name
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#254967] flex items-center gap-1.5">
+                      <School size={13} className="text-[#007fb8]" /> School Name
+                    </label>
+                    {school && schoolValidation.valid && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#159366]">
+                        <CheckCircle2 size={12} />
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     placeholder="e.g. Royal College, Colombo"
                     value={school}
-                    onChange={(e) => setSchool(e.target.value)}
-                    className="w-full rounded-xl border border-[#cddce5] bg-[#f8fafc] px-3.5 py-2.5 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors focus:border-[#007fb8] focus:bg-white"
+                    onChange={(e) => {
+                      setSchool(e.target.value);
+                      if (!touched.school) setTouched((prev) => ({ ...prev, school: true }));
+                    }}
+                    onBlur={() => handleBlur("school")}
+                    className={`w-full rounded-xl border px-3.5 py-2.5 text-base sm:text-xs font-medium text-[#102c45] outline-none transition-colors ${
+                      touched.school && !schoolValidation.valid
+                        ? "border-red-400 bg-red-50/40 focus:border-red-500"
+                        : "border-[#cddce5] bg-[#f8fafc] focus:border-[#007fb8] focus:bg-white"
+                    }`}
                   />
+                  {touched.school && !schoolValidation.valid && (
+                    <p className="text-[10.5px] font-semibold text-red-600 flex items-center gap-1">
+                      <AlertCircle size={11} className="shrink-0" />
+                      <span>{schoolValidation.error}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 

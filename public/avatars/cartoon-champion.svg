@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg8" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#bg8)"/>
+  <!-- Gold Crown on Top -->
+  <polygon points="46,24 53,16 60,22 67,16 74,24 71,28 49,28" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5"/>
+  <circle cx="53" cy="16" r="2" fill="#ef4444"/>
+  <circle cx="60" cy="22" r="2" fill="#3b82f6"/>
+  <circle cx="67" cy="16" r="2" fill="#10b981"/>
+  <!-- Body -->
+  <path d="M26 110 C26 88 42 82 60 82 C78 82 94 88 94 110 Z" fill="#78350f"/>
+  <circle cx="60" cy="98" r="8" fill="#fef08a"/>
+  <text x="60" y="101" font-size="8" font-family="sans-serif" font-weight="900" fill="#b45309" text-anchor="middle">9A</text>
+  <!-- Neck -->
+  <rect x="52" y="70" width="16" height="16" rx="4" fill="#fed7aa"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="54" rx="23" ry="25" fill="#fed7aa"/>
+  <!-- Hair -->
+  <path d="M38 48 C36 34 46 26 60 26 C74 26 84 34 82 48 Z" fill="#1e293b"/>
+  <!-- Big Happy Eyes -->
+  <ellipse cx="49" cy="52" rx="3.5" ry="4.5" fill="#0f172a"/>
+  <ellipse cx="71" cy="52" rx="3.5" ry="4.5" fill="#0f172a"/>
+  <circle cx="48" cy="50" r="1.5" fill="#ffffff"/>
+  <circle cx="70" cy="50" r="1.5" fill="#ffffff"/>
+  <!-- Ecstatic Smile -->
+  <path d="M50 63 Q60 75 70 63 Z" fill="#dc2626" stroke="#b91c1c" stroke-width="1"/>
+  <rect x="54" y="63" width="12" height="4" fill="#ffffff"/>
+  <!-- Blush -->
+  <circle cx="42" cy="61" r="4" fill="#f43f5e" opacity="0.5"/>
+  <circle cx="78" cy="61" r="4" fill="#f43f5e" opacity="0.5"/>
+</svg>

@@ -44,16 +44,18 @@ interface AdminProfileTabProps {
 }
 
 const ADMIN_AVATAR_PRESETS = [
-  { id: "educator-1", label: "Official Portrait", category: "Official", url: "/images/educator.jpg" },
-  { id: "educator-2", label: "Lecture Session", category: "Classroom", url: "/images/classroom-lecture.jpg" },
-  { id: "educator-3", label: "Seminar Hall", category: "Lecture", url: "/images/seminar-hall.jpg" },
-  { id: "educator-4", label: "Exam Hall Session", category: "Academic", url: "/images/paper-session.jpg" },
-  { id: "educator-5", label: "Award Ceremony", category: "Events", url: "/images/real-class-award.jpg" },
-  { id: "educator-6", label: "Commerce Class Group", category: "Community", url: "/images/real-class-selfie.jpg" },
-  { id: "educator-7", label: "Scholar Distinction #1", category: "Scholars", url: "/images/top_student_rank1.jpg" },
-  { id: "educator-8", label: "Scholar Distinction #2", category: "Scholars", url: "/images/top_student_rank2.jpg" },
-  { id: "educator-9", label: "Scholar Distinction #3", category: "Scholars", url: "/images/top_student_rank3.jpg" },
-  { id: "educator-10", label: "Commerce Students Showcase", category: "Scholars", url: "/images/students_showcase.jpg" },
+  { id: "cartoon-1", label: "Smart Scholar Boy", category: "Students", url: "/avatars/cartoon-boy-1.svg" },
+  { id: "cartoon-2", label: "Commerce Genius Girl", category: "Students", url: "/avatars/cartoon-girl-1.svg" },
+  { id: "cartoon-3", label: "Top Achiever Boy", category: "Students", url: "/avatars/cartoon-boy-2.svg" },
+  { id: "cartoon-4", label: "Academic Star Girl", category: "Students", url: "/avatars/cartoon-girl-2.svg" },
+  { id: "cartoon-5", label: "Distinction Graduate", category: "Scholars", url: "/avatars/cartoon-graduate.svg" },
+  { id: "cartoon-6", label: "9A Gold Champion", category: "Scholars", url: "/avatars/cartoon-champion.svg" },
+  { id: "cartoon-7", label: "Genius Idea Scholar", category: "Scholars", url: "/avatars/cartoon-genius.svg" },
+  { id: "cartoon-8", label: "Commerce Leader", category: "Scholars", url: "/avatars/cartoon-leader.svg" },
+  { id: "cartoon-9", label: "Lead Faculty Educator", category: "Educators", url: "/avatars/cartoon-educator-male.svg" },
+  { id: "cartoon-10", label: "Commerce Mentor", category: "Educators", url: "/avatars/cartoon-educator-female.svg" },
+  { id: "cartoon-11", label: "Cool Study Hacker", category: "Students", url: "/avatars/cartoon-cool-student.svg" },
+  { id: "cartoon-12", label: "Shining Commerce Star", category: "Students", url: "/avatars/cartoon-commerce-star.svg" },
 ];
 
 export default function AdminProfileTab({
@@ -355,7 +357,7 @@ export default function AdminProfileTab({
                 className="inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-3.5 py-1.5 text-[11px] font-black text-white shadow-xs hover:scale-102 transition-all cursor-pointer"
               >
                 <Sparkles size={12} className="text-[#0ac9e8]" />
-                <span>Choose Photo &amp; Avatar Gallery</span>
+                <span>Choose Cartoon Avatar Gallery</span>
               </button>
 
               <div className="hidden sm:flex items-center gap-1.5">
@@ -918,7 +920,7 @@ export default function AdminProfileTab({
             <div className="flex items-center justify-between pb-3 border-b border-[#cddce5]">
               <div className="flex items-center gap-2">
                 <Sparkles size={18} className="text-[#007fb8]" />
-                <h3 className="text-lg font-black text-[#102c45]">Choose Profile Photo &amp; Avatar</h3>
+                <h3 className="text-lg font-black text-[#102c45]">Choose Cartoon Avatar Gallery</h3>
               </div>
               <button
                 type="button"
@@ -931,7 +933,7 @@ export default function AdminProfileTab({
 
             {/* Category Filter Pills */}
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              {["all", "Official", "Classroom", "Lecture", "Events", "Scholars"].map((cat) => (
+              {["all", "Students", "Scholars", "Educators"].map((cat) => (
                 <button
                   key={cat}
                   type="button"
@@ -942,7 +944,7 @@ export default function AdminProfileTab({
                       : "bg-[#edf2f3] text-[#60768a] hover:bg-[#cddce5]"
                   }`}
                 >
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  {cat === "all" ? "All Cartoon Avatars" : cat}
                 </button>
               ))}
             </div>

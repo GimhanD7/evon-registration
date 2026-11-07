@@ -2,10 +2,13 @@
 // ========================================================
 // Batches Management API
 // Evon Aravinda Commerce Education LMS
+// Stored in MySQL Database: `batches` table
 // ========================================================
 
 require_once __DIR__ . '/../config/db.php';
 require_db_connection();
+
+header('Content-Type: application/json; charset=utf-8');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -18,7 +21,7 @@ try {
         INDEX (`name`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 } catch (Exception $e) {
-    // Table creation handled gracefully
+    // Handled gracefully
 }
 
 // 2. Default Seed Batches
@@ -42,12 +45,10 @@ try {
     // Ignore seed errors
 }
 
-// 3. GET: Fetch all batches from the database
-if ($method === 'GET') {
+// Helper function to return all current batches from database
+function getAllDatabaseBatches($pdo, $seedBatches) {
+    $batches = [];
     try {
-        $batches = [];
-
-        // Fetch from dedicated `batches` table
         $stmt = $pdo->query("SELECT `name` FROM `batches` ORDER BY `id` ASC");
         while ($row = $stmt->fetch()) {
             $name = trim($row['name'] ?? '');
@@ -55,32 +56,18 @@ if ($method === 'GET') {
                 $batches[] = $name;
             }
         }
+    } catch (Exception $e) {}
 
-        // Also harvest any existing distinct batches from `papers`, `quizzes`, and `users`
-        $harvestQueries = [
-            "SELECT DISTINCT `batch` FROM `papers` WHERE `batch` IS NOT NULL AND TRIM(`batch`) != ''",
-            "SELECT DISTINCT `batch` FROM `quizzes` WHERE `batch` IS NOT NULL AND TRIM(`batch`) != ''",
-            "SELECT DISTINCT `batch` FROM `users` WHERE `batch` IS NOT NULL AND TRIM(`batch`) != ''"
-        ];
+    if (empty($batches)) {
+        $batches = $seedBatches;
+    }
+    return $batches;
+}
 
-        foreach ($harvestQueries as $hq) {
-            try {
-                $hstmt = $pdo->query($hq);
-                while ($hrow = $hstmt->fetch()) {
-                    $val = trim($hrow['batch'] ?? '');
-                    if (!empty($val) && !in_array($val, $batches)) {
-                        $batches[] = $val;
-                    }
-                }
-            } catch (Exception $ex) {
-                // Ignore if table does not exist yet
-            }
-        }
-
-        // If still empty, return default seeds
-        if (empty($batches)) {
-            $batches = $seedBatches;
-        }
+// 3. GET: Fetch all batches from database
+if ($method === 'GET') {
+    try {
+        $batches = getAllDatabaseBatches($pdo, $seedBatches);
 
         echo json_encode([
             "success" => true,
@@ -99,13 +86,83 @@ if ($method === 'GET') {
     }
 }
 
-// 4. POST: Add a new batch to the database
+// 4. POST: Add, Update (Rename), or Delete a batch
 if ($method === 'POST') {
     try {
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true) ?? $_POST;
-        $batchName = trim($data['name'] ?? $data['batch'] ?? '');
+        $action = trim($data['action'] ?? 'add');
 
+        // ACTION: UPDATE / RENAME BATCH
+        if ($action === 'update' || $action === 'rename' || $action === 'change') {
+            $oldName = trim($data['oldName'] ?? $data['old_name'] ?? '');
+            $newName = trim($data['newName'] ?? $data['new_name'] ?? $data['name'] ?? '');
+
+            if (empty($oldName) || empty($newName)) {
+                echo json_encode([
+                    "success" => false,
+                    "error" => "Both current batch name and new batch name are required."
+                ]);
+                exit();
+            }
+
+            // Update in batches table
+            $upStmt = $pdo->prepare("UPDATE `batches` SET `name` = :newName WHERE `name` = :oldName");
+            $upStmt->execute([
+                'newName' => $newName,
+                'oldName' => $oldName
+            ]);
+
+            // Cascade update to users enrolled in this batch
+            try {
+                $uStmt = $pdo->prepare("UPDATE `users` SET `batch` = :newName WHERE `batch` = :oldName");
+                $uStmt->execute(['newName' => $newName, 'oldName' => $oldName]);
+            } catch (Exception $ex) {}
+
+            // Cascade update to papers assigned to this batch
+            try {
+                $pStmt = $pdo->prepare("UPDATE `papers` SET `batch` = :newName WHERE `batch` = :oldName");
+                $pStmt->execute(['newName' => $newName, 'oldName' => $oldName]);
+            } catch (Exception $ex) {}
+
+            // Cascade update to quizzes assigned to this batch
+            try {
+                $qStmt = $pdo->prepare("UPDATE `quizzes` SET `batch` = :newName WHERE `batch` = :oldName");
+                $qStmt->execute(['newName' => $newName, 'oldName' => $oldName]);
+            } catch (Exception $ex) {}
+
+            $allBatches = getAllDatabaseBatches($pdo, $seedBatches);
+
+            echo json_encode([
+                "success" => true,
+                "message" => "Commerce Batch updated from '{$oldName}' to '{$newName}' successfully across all enrolled records.",
+                "oldName" => $oldName,
+                "newName" => $newName,
+                "batches" => $allBatches
+            ]);
+            exit();
+        }
+
+        // ACTION: DELETE BATCH
+        if ($action === 'delete' || $action === 'remove') {
+            $batchName = trim($data['name'] ?? $data['batch'] ?? '');
+            if (!empty($batchName)) {
+                $delStmt = $pdo->prepare("DELETE FROM `batches` WHERE `name` = :name");
+                $delStmt->execute(['name' => $batchName]);
+            }
+
+            $allBatches = getAllDatabaseBatches($pdo, $seedBatches);
+
+            echo json_encode([
+                "success" => true,
+                "message" => "Batch '{$batchName}' removed from database successfully.",
+                "batches" => $allBatches
+            ]);
+            exit();
+        }
+
+        // DEFAULT ACTION: ADD BATCH
+        $batchName = trim($data['name'] ?? $data['batch'] ?? '');
         if (empty($batchName)) {
             echo json_encode([
                 "success" => false,
@@ -115,19 +172,14 @@ if ($method === 'POST') {
         }
 
         // Insert into database
-        $stmt = $pdo->prepare("INSERT INTO `batches` (`name`) VALUES (:name) ON DUPLICATE KEY UPDATE `name` = :name_update");
-        $stmt->execute([
-            'name' => $batchName,
-            'name_update' => $batchName
-        ]);
+        $stmt = $pdo->prepare("INSERT INTO `batches` (`name`) VALUES (:name) ON DUPLICATE KEY UPDATE `name` = `name`");
+        $stmt->execute(['name' => $batchName]);
 
-        // Return updated list of all batches
-        $allStmt = $pdo->query("SELECT `name` FROM `batches` ORDER BY `id` ASC");
-        $allBatches = $allStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        $allBatches = getAllDatabaseBatches($pdo, $seedBatches);
 
         echo json_encode([
             "success" => true,
-            "message" => "Batch '{$batchName}' added to database successfully.",
+            "message" => "Commerce Batch '{$batchName}' added to database successfully.",
             "batch" => $batchName,
             "batches" => $allBatches
         ]);
@@ -135,13 +187,13 @@ if ($method === 'POST') {
     } catch (Exception $e) {
         echo json_encode([
             "success" => false,
-            "error" => "Failed to add batch to database: " . $e->getMessage()
+            "error" => "Failed to process batch request: " . $e->getMessage()
         ]);
         exit();
     }
 }
 
-// 5. DELETE: Remove a batch from database
+// 5. DELETE: Remove a batch from database via DELETE method
 if ($method === 'DELETE') {
     try {
         $batchName = trim($_GET['name'] ?? '');
@@ -150,9 +202,12 @@ if ($method === 'DELETE') {
             $stmt->execute(['name' => $batchName]);
         }
 
+        $allBatches = getAllDatabaseBatches($pdo, $seedBatches);
+
         echo json_encode([
             "success" => true,
-            "message" => "Batch removed."
+            "message" => "Batch removed from database.",
+            "batches" => $allBatches
         ]);
         exit();
     } catch (Exception $e) {

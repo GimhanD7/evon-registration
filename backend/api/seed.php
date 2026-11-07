@@ -21,10 +21,7 @@ if ($isJson) {
     header("Content-Type: text/html; charset=UTF-8");
 }
 
-$db_host = getenv('DB_HOST') ?: "127.0.0.1";
-$db_port = getenv('DB_PORT') ?: "3306";
-$db_user = getenv('DB_USER') ?: "root";
-$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : "";
+require_once __DIR__ . '/../config/db.php';
 
 $results = [
     "success" => false,
@@ -34,16 +31,20 @@ $results = [
 
 try {
     // 1. Connect to MySQL server
-    $pdo = new PDO("mysql:host={$db_host};port={$db_port};charset=utf8mb4", $db_user, $db_pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
-    ]);
+    if (!$pdo) {
+        $pdo = new PDO("mysql:host={$db_host};port={$db_port};charset=utf8mb4", $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+        ]);
+    }
 
     // Cleanly drop outdated tables so all new columns (avatar_url, enrolled_date, etc.) are created fresh
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `evon_lms` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-    $pdo->exec("USE `evon_lms`;");
+    if ($is_local) {
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+    }
+    $pdo->exec("USE `{$db_name}`;");
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
-    $pdo->exec("DROP TABLE IF EXISTS `national_results`, `quiz_attempts`, `quiz_questions`, `evaluations`, `paper_results`, `quizzes`, `papers`, `users`;");
+    $pdo->exec("DROP TABLE IF EXISTS `app_settings`, `activity_logs`, `national_results`, `quiz_attempts`, `quiz_questions`, `evaluations`, `paper_results`, `quizzes`, `papers`, `users`, `batches`;");
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
     // 2. Load schema.sql & seed_all_data.sql
@@ -62,8 +63,8 @@ try {
         throw new Exception("Seed file not found at: {$seedPath}");
     }
 
-    // 3. Connect to evon_lms specifically to count records
-    $dbPdo = new PDO("mysql:host={$db_host};port={$db_port};dbname=evon_lms;charset=utf8mb4", $db_user, $db_pass, [
+    // 3. Connect to target database specifically to count records
+    $dbPdo = new PDO("mysql:host={$db_host};port={$db_port};dbname={$db_name};charset=utf8mb4", $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
@@ -76,7 +77,7 @@ try {
     $evalCount = $dbPdo->query("SELECT COUNT(*) as c FROM evaluations")->fetch()['c'] ?? 0;
 
     $results["success"] = true;
-    $results["message"] = "Database 'evon_lms' seeded successfully with all papers and results!";
+    $results["message"] = "Database '{$db_name}' cleared of all sample data! Initialized with clean schema and root administrator.";
     $results["counts"] = [
         "users" => (int)$userCount,
         "papers" => (int)$paperCount,
@@ -103,7 +104,7 @@ try {
     echo "</div>";
 
     echo "<div style='background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:16px; border-radius:14px; font-size:14px; margin-bottom:24px; line-height:1.5;'>";
-    echo "<strong>Success!</strong> All exam papers, student marks, quizzes, and accounts from <code>lmsData.ts</code> and <code>paperClassData.ts</code> are now safely stored in the MySQL database.";
+    echo "<strong>Clean State Initialized!</strong> All sample and mock data has been purged. The database is clean and ready for real production papers, students, and marks.";
     echo "</div>";
 
     echo "<h3 style='margin:0 0 12px; color:#102c45; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;'>Current Database Records</h3>";
@@ -115,10 +116,8 @@ try {
     echo "</div>";
 
     echo "<div style='background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:14px; font-size:13px; line-height:1.6; margin-bottom:24px;'>";
-    echo "<strong style='color:#102c45;'>Test Credentials:</strong><br>";
-    echo "• <strong>Student Phone:</strong> <code>0771234567</code> | <strong>Password:</strong> <code>pass123</code> (Index: 53914864)<br>";
+    echo "<strong style='color:#102c45;'>Root Administrator Access:</strong><br>";
     echo "• <strong>Admin Phone:</strong> <code>0719998877</code> | <strong>Password:</strong> <code>admin123</code><br>";
-    echo "• <em>Any student index number on the leaderboard can also be used as their login ID!</em>";
     echo "</div>";
 
     echo "<div style='display:flex; gap:12px;'>";

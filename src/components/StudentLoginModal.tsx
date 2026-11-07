@@ -9,13 +9,13 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  GraduationCap,
   CheckCircle2,
   AlertCircle,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { loginLms, LMSUser } from "@/lib/lmsStore";
+import { logActivity } from "@/lib/activityLogService";
 
 interface StudentLoginModalProps {
   isOpen: boolean;
@@ -41,6 +41,17 @@ export default function StudentLoginModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
+
+    const cleanInput = phone.trim();
+    if (!cleanInput) {
+      setErrorMsg("Please enter your registered mobile phone number or Index Number.");
+      return;
+    }
+    if (!password.trim()) {
+      setErrorMsg("Please enter your LMS account password.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -49,6 +60,13 @@ export default function StudentLoginModal({
 
       if (result.success && result.user) {
         setLoginSuccessUser(result.user);
+        logActivity(
+          result.user.role === "admin" ? "Admin Session Authenticated" : "Student Login Success",
+          "auth",
+          `Authenticated via web portal: ${result.user.fullName} (${result.user.phone})`,
+          result.user,
+          "success"
+        );
         setTimeout(() => {
           onClose();
           if (result.user?.role === "admin") {
@@ -63,17 +81,6 @@ export default function StudentLoginModal({
     } catch {
       setIsLoading(false);
       setErrorMsg("Failed to authenticate. Please check connection and try again.");
-    }
-  };
-
-  const handleDemoFill = (role: "student" | "admin") => {
-    setErrorMsg("");
-    if (role === "student") {
-      setPhone("0771234567");
-      setPassword("pass123");
-    } else {
-      setPhone("0719998877");
-      setPassword("admin123");
     }
   };
 
@@ -230,43 +237,6 @@ export default function StudentLoginModal({
                   </>
                 )}
               </button>
-
-              {/* Quick 1-Click Demo Fill Buttons */}
-              <div className="mt-2 rounded-2xl border border-[#cddce5] bg-[#edf2f3]/50 p-3.5">
-                <div className="mb-2.5 flex items-center justify-between text-[11px] font-bold text-[#102c45]">
-                  <span className="flex items-center gap-1.5 text-[#007fb8] font-black">
-                    <Sparkles size={13} className="text-[#007fb8]" /> Quick One-Click Testing:
-                  </span>
-                  <span className="text-[10px] text-[#60768a]">Auto Fills &amp; Tests</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => handleDemoFill("student")}
-                    className="flex flex-col items-start rounded-2xl border border-[#38d995]/40 bg-white p-2.5 text-left transition-all hover:bg-[#e8f7f2] hover:border-[#38d995] active:scale-95 shadow-2xs cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1 text-[10px] font-extrabold text-[#159366] uppercase">
-                      <GraduationCap size={13} /> Student Demo
-                    </span>
-                    <span className="text-[12px] font-black text-[#102c45] font-mono truncate w-full mt-0.5">
-                      0771234567
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDemoFill("admin")}
-                    className="flex flex-col items-start rounded-2xl border border-[#007fb8]/30 bg-white p-2.5 text-left transition-all hover:bg-[#e0f2fe] hover:border-[#007fb8] active:scale-95 shadow-2xs cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1 text-[10px] font-extrabold text-[#007fb8] uppercase">
-                      <ShieldCheck size={13} /> Admin Demo
-                    </span>
-                    <span className="text-[12px] font-black text-[#102c45] font-mono truncate w-full mt-0.5">
-                      0719998877
-                    </span>
-                  </button>
-                </div>
-              </div>
 
               {/* Register Callout for Unregistered Users */}
               <div className="mt-1 flex flex-col items-center justify-center gap-2 border-t border-[#cddce5]/70 pt-4 text-center">

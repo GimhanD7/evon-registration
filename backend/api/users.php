@@ -14,8 +14,14 @@ if ($method === 'GET') {
         $search = trim($_GET['search'] ?? '');
         $fields = "user_uid as id, full_name as fullName, phone, role, index_no as indexNo, batch, school, parent_phone as parentPhone, avatar_url as avatarUrl, status, SUBSTRING(created_at, 1, 10) as enrolledDate";
         if (!empty($search)) {
-            $stmt = $pdo->prepare("SELECT {$fields} FROM users WHERE full_name LIKE :s OR phone LIKE :s OR index_no LIKE :s OR school LIKE :s ORDER BY id DESC");
-            $stmt->execute(['s' => "%{$search}%"]);
+            $stmt = $pdo->prepare("SELECT {$fields} FROM users WHERE full_name LIKE :s1 OR phone LIKE :s2 OR index_no LIKE :s3 OR school LIKE :s4 ORDER BY id DESC");
+            $sParam = "%{$search}%";
+            $stmt->execute([
+                's1' => $sParam,
+                's2' => $sParam,
+                's3' => $sParam,
+                's4' => $sParam,
+            ]);
         } else {
             $stmt = $pdo->query("SELECT {$fields} FROM users ORDER BY id DESC");
         }
@@ -78,7 +84,42 @@ if ($method === 'POST') {
 
     if (empty($name) || empty($phone)) {
         http_response_code(400);
-        echo json_encode(["success" => false, "error" => "Name and phone are required."]);
+        echo json_encode(["success" => false, "error" => "Student full name and WhatsApp phone number are required."]);
+        exit();
+    }
+
+    if (strlen($name) < 3) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "error" => "Student full name must be at least 3 characters long."]);
+        exit();
+    }
+
+    // Normalize and validate WhatsApp mobile number
+    $cleanPhone = preg_replace('/[\s\-\(\)\.]/', '', $phone);
+    if (str_starts_with($cleanPhone, '+94')) {
+        $cleanPhone = '0' . substr($cleanPhone, 3);
+    } elseif (str_starts_with($cleanPhone, '94') && strlen($cleanPhone) === 11) {
+        $cleanPhone = '0' . substr($cleanPhone, 2);
+    } elseif (str_starts_with($cleanPhone, '0094')) {
+        $cleanPhone = '0' . substr($cleanPhone, 4);
+    }
+
+    $isSlMobile = preg_match('/^07[01245678]\d{7}$/', $cleanPhone);
+    $isGeneralValid = preg_match('/^\+?\d{9,15}$/', $cleanPhone);
+
+    if (!$isSlMobile && !$isGeneralValid) {
+        http_response_code(400);
+        echo json_encode([
+            "success" => false,
+            "error" => "Please enter a valid 10-digit Sri Lankan WhatsApp mobile number (e.g. 0771234567)."
+        ]);
+        exit();
+    }
+    $phone = $cleanPhone;
+
+    if (strlen($pass) < 4) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "error" => "LMS Password must be at least 4 characters long."]);
         exit();
     }
 

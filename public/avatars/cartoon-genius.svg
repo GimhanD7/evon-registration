@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg9" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#bg9)"/>
+  <!-- Lightbulb Idea Glow -->
+  <circle cx="60" cy="20" r="7" fill="#fde047"/>
+  <path d="M57 26 L63 26 L62 29 L58 29 Z" fill="#94a3b8"/>
+  <line x1="60" y1="10" x2="60" y2="7" stroke="#fde047" stroke-width="2" stroke-linecap="round"/>
+  <line x1="50" y1="14" x2="47" y2="12" stroke="#fde047" stroke-width="2" stroke-linecap="round"/>
+  <line x1="70" y1="14" x2="73" y2="12" stroke="#fde047" stroke-width="2" stroke-linecap="round"/>
+  <!-- Body -->
+  <path d="M26 110 C26 88 42 82 60 82 C78 82 94 88 94 110 Z" fill="#312e81"/>
+  <!-- Neck -->
+  <rect x="52" y="70" width="16" height="16" rx="4" fill="#fed7aa"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="54" rx="23" ry="25" fill="#fed7aa"/>
+  <!-- Hair -->
+  <path d="M38 50 C36 32 46 26 60 26 C74 26 84 32 82 50 Z" fill="#475569"/>
+  <!-- Big Eyes Looking Up at Idea -->
+  <circle cx="49" cy="52" r="4.5" fill="#ffffff" stroke="#1e1b4b" stroke-width="1.5"/>
+  <circle cx="71" cy="52" r="4.5" fill="#ffffff" stroke="#1e1b4b" stroke-width="1.5"/>
+  <circle cx="49" cy="49.5" r="2.5" fill="#312e81"/>
+  <circle cx="71" cy="49.5" r="2.5" fill="#312e81"/>
+  <!-- Smile -->
+  <path d="M54 65 Q60 70 66 65" fill="none" stroke="#be123c" stroke-width="2" stroke-linecap="round"/>
+</svg>

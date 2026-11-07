@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useEffect } from "react";
+import { useSyncExternalStore, useEffect, useMemo } from "react";
 import {
   LMSUser,
   LMSPaper,
@@ -12,10 +12,11 @@ import {
   initialLmsQuizzes,
   initialLmsEvaluations,
 } from "@/data/lmsData";
-import { paperClassList, demoAccounts, PaperClassItem } from "@/data/paperClassData";
+import type { PaperClassItem } from "@/data/paperClassData";
+import { resultsData, type StudentResult } from "@/data/resultsData";
 import { getApiCandidateUrls } from "./apiConfig";
 
-export type { LMSUser, LMSPaper, LMSQuiz, LMSEvaluation, PaperStudentResult };
+export type { LMSUser, LMSPaper, LMSQuiz, LMSEvaluation, PaperStudentResult, StudentResult };
 
 const STORAGE_KEYS = {
   CURRENT_USER: "evon_lms_current_user",
@@ -208,14 +209,14 @@ export function useCurrentLmsUser(): { user: LMSUser | null; isLoaded: boolean }
     () => null
   );
 
-  let user: LMSUser | null = null;
-  if (userJson) {
+  const user = useMemo(() => {
+    if (!userJson) return null;
     try {
-      user = JSON.parse(userJson) as LMSUser;
+      return JSON.parse(userJson) as LMSUser;
     } catch {
-      user = null;
+      return null;
     }
-  }
+  }, [userJson]);
 
   return { user, isLoaded };
 }
@@ -334,7 +335,14 @@ export function getLmsUsers(): LMSUser[] {
       safeSetLocalStorage(STORAGE_KEYS.USERS, JSON.stringify(initialLmsUsers));
       return initialLmsUsers;
     }
-    return JSON.parse(raw) as LMSUser[];
+    const parsed = JSON.parse(raw) as LMSUser[];
+    // Clean out obsolete sample students so only real database users exist
+    const cleaned = parsed.filter((u) => u.role === "admin" || !u.id.match(/^std-00[1-4]$/));
+    if (cleaned.length !== parsed.length) {
+      safeSetLocalStorage(STORAGE_KEYS.USERS, JSON.stringify(cleaned));
+      return cleaned;
+    }
+    return parsed;
   } catch (err) {
     console.error("Error reading users:", err);
     return initialLmsUsers;
@@ -354,9 +362,12 @@ export async function syncUsersFromBackend(): Promise<LMSUser[]> {
     const res = await callBackendApi("users.php");
     if (res && res.ok) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.users) && data.users.length > 0) {
-        saveLmsUsers(data.users);
-        return data.users;
+      if (data && data.success && Array.isArray(data.users)) {
+        // Ensure default Lead Educator Admin account is always present for fallback login
+        const hasAdmin = data.users.some((u: LMSUser) => u.role === "admin");
+        const finalUsers = hasAdmin ? data.users : [...initialLmsUsers, ...data.users];
+        saveLmsUsers(finalUsers);
+        return finalUsers;
       }
     }
   } catch {
@@ -367,8 +378,8 @@ export async function syncUsersFromBackend(): Promise<LMSUser[]> {
 
 /**
  * Automatically generates a guaranteed unique 8-digit Index Number.
- * Collects and verifies all existing index numbers from stored users, seed users,
- * paper results, and paper class records to ensure zero duplication and no repeating.
+ * Collects and verifies all existing index numbers from stored database users
+ * and paper results to ensure zero duplication and no repeating.
  */
 export function generateUniqueIndexNo(): string {
   const users = getLmsUsers();
@@ -376,42 +387,18 @@ export function generateUniqueIndexNo(): string {
 
   const existing = new Set<string>();
 
-  // 1. Current stored users
+  // 1. Current stored database users
   for (const u of users) {
     if (u.indexNo) existing.add(u.indexNo.trim());
   }
 
-  // 2. Initial seed users
+  // 2. Initial system users
   for (const u of initialLmsUsers) {
     if (u.indexNo) existing.add(u.indexNo.trim());
   }
 
   // 3. Stored paper results
   for (const p of papers) {
-    if (p.results) {
-      for (const r of p.results) {
-        if (r.indexNo) existing.add(r.indexNo.trim());
-      }
-    }
-  }
-
-  // 4. Initial paper results
-  for (const p of initialLmsPapers) {
-    if (p.results) {
-      for (const r of p.results) {
-        if (r.indexNo) existing.add(r.indexNo.trim());
-      }
-    }
-  }
-
-  // 5. Demo accounts
-  for (const d of demoAccounts) {
-    if (d.user.indexNo) existing.add(d.user.indexNo.trim());
-  }
-
-  // 6. Paper class results & toppers
-  for (const p of paperClassList) {
-    if (p.topper?.indexNo) existing.add(p.topper.indexNo.trim());
     if (p.results) {
       for (const r of p.results) {
         if (r.indexNo) existing.add(r.indexNo.trim());
@@ -694,15 +681,17 @@ export function getLmsPapers(): LMSPaper[] {
       return initialLmsPapers;
     }
     const parsed = JSON.parse(raw) as LMSPaper[];
-    // Backwards-compatible: enrich with default results if previously saved without results
-    const enriched = parsed.map((p) => {
-      if (!p.results) {
-        const init = initialLmsPapers.find((ip) => ip.id === p.id);
-        return { ...p, results: init?.results || [] };
-      }
-      return p;
-    });
-    return enriched;
+    // Filter out legacy sample papers from old mock templates
+    const cleaned = parsed.filter(
+      (p) =>
+        !(p as { paperCode?: string }).paperCode?.startsWith("EA-2025-P") &&
+        !p.title?.includes("All-Island Full O/L Model Exam")
+    );
+    if (cleaned.length !== parsed.length) {
+      safeSetLocalStorage(STORAGE_KEYS.PAPERS, JSON.stringify(cleaned));
+      return cleaned;
+    }
+    return parsed;
   } catch {
     return initialLmsPapers;
   }
@@ -892,24 +881,23 @@ export function getCombinedModelPapers(): PaperClassItem[] {
   const combined: PaperClassItem[] = [];
 
   for (const p of lmsPapers) {
-    const existingBase = paperClassList.find((base) => base.id === p.id);
-    const candidateResults = p.results && p.results.length > 0 ? p.results : existingBase?.results || [];
+    const candidateResults = p.results && p.results.length > 0 ? p.results : [];
 
-    const totalCandidates = candidateResults.length || existingBase?.totalCandidates || 0;
+    const totalCandidates = candidateResults.length;
     const highestMark = candidateResults.length > 0
       ? Math.max(...candidateResults.map((r) => r.totalScore))
-      : existingBase?.highestMark || p.totalMarks || 100;
+      : p.totalMarks || 100;
 
     const avgMark = candidateResults.length > 0
       ? Math.round((candidateResults.reduce((sum, r) => sum + r.totalScore, 0) / candidateResults.length) * 10) / 10
-      : existingBase?.averageMark || 75;
+      : 75;
 
     const passPct = candidateResults.length > 0
       ? Math.round((candidateResults.filter((r) => r.totalScore >= 35).length / candidateResults.length) * 1000) / 10
-      : existingBase?.passPercentage || 95;
+      : 95;
 
     // Topper
-    let topper = existingBase?.topper;
+    let topper: PaperClassItem["topper"] = undefined;
     if (candidateResults.length > 0) {
       const topRes = [...candidateResults].sort((a, b) => b.totalScore - a.totalScore)[0];
       if (topRes) {
@@ -921,7 +909,7 @@ export function getCombinedModelPapers(): PaperClassItem[] {
           part1Score: topRes.part1Score,
           part2Score: topRes.part2Score,
           badge: topRes.totalScore === 100 ? "Island 1st • Perfect 100%" : "Top Scorer • Rank 1",
-          avatarImage: topRes.avatarImage || existingBase?.topper?.avatarImage,
+          avatarImage: topRes.avatarImage,
         };
       }
     }
@@ -942,7 +930,7 @@ export function getCombinedModelPapers(): PaperClassItem[] {
       ? `Paper ${String(p.paperNumber).padStart(2, "0")}`
       : String(p.paperNumber);
 
-    const paperCodeString = existingBase?.paperCode || `EA-${p.year || 2026}-P${typeof p.paperNumber === "number" ? String(p.paperNumber).padStart(2, "0") : "01"}`;
+    const paperCodeString = `EA-${p.year || 2026}-P${typeof p.paperNumber === "number" ? String(p.paperNumber).padStart(2, "0") : "01"}`;
 
     const scoreDistribution = {
       ninetyPlus: candidateResults.filter((r) => r.totalScore >= 90).length,
@@ -956,26 +944,19 @@ export function getCombinedModelPapers(): PaperClassItem[] {
       paperNumber: paperNumString,
       paperCode: paperCodeString,
       title: p.title,
-      batch: (p.batch || existingBase?.batch || "2026 O/L Speed Revision") as PaperClassItem["batch"],
-      term: existingBase?.term || "Final Pre-Exam Assessment",
-      examDate: existingBase?.examDate || `${p.month || "Monthly"} ${p.year || 2026}`,
+      batch: (p.batch || "2026 O/L Speed Revision") as PaperClassItem["batch"],
+      term: "Final Pre-Exam Assessment",
+      examDate: `${p.month || "Monthly"} ${p.year || 2026}`,
       totalCandidates,
       highestMark,
       averageMark: avgMark,
       passPercentage: passPct,
-      topics: existingBase?.topics || [p.subject || "Business & Accounting Studies", "Theory Revision & Structured Questions"],
-      durationMinutes: p.durationMinutes || existingBase?.durationMinutes || 120,
+      topics: [p.subject || "Business & Accounting Studies", "Theory Revision & Structured Questions"],
+      durationMinutes: p.durationMinutes || 120,
       topper,
       scoreDistribution,
       results: candidateResults,
     });
-  }
-
-  // Include any base paperClassList items that might not have been in lmsPapers
-  for (const base of paperClassList) {
-    if (!combined.some((c) => c.id === base.id)) {
-      combined.push(base);
-    }
   }
 
   // Sort by paper number ascending (Paper 01, Paper 02, etc.)
@@ -1098,7 +1079,7 @@ export async function syncPapersFromBackend(): Promise<LMSPaper[]> {
     const res = await callBackendApi("papers.php?withResults=1");
     if (res) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.papers) && data.papers.length > 0) {
+      if (data && data.success && Array.isArray(data.papers)) {
         saveLmsPapers(data.papers);
         return data.papers;
       }
@@ -1110,7 +1091,25 @@ export async function syncPapersFromBackend(): Promise<LMSPaper[]> {
 }
 
 /**
- * Trigger full database migration & seed from lmsData and paperClassData into MySQL
+ * Completely purges all local storage cached sample data (papers, mock students, quizzes, evaluations)
+ */
+export function purgeAllLocalSampleData(): void {
+  if (!isClient()) return;
+  safeSetLocalStorage(STORAGE_KEYS.PAPERS, JSON.stringify([]));
+  safeSetLocalStorage(STORAGE_KEYS.QUIZZES, JSON.stringify([]));
+  safeSetLocalStorage(STORAGE_KEYS.EVALUATIONS, JSON.stringify([]));
+  const currentUsers = getLmsUsers();
+  const onlyAdmin = currentUsers.filter((u) => u.role === "admin");
+  safeSetLocalStorage(STORAGE_KEYS.USERS, JSON.stringify(onlyAdmin.length > 0 ? onlyAdmin : initialLmsUsers));
+  window.dispatchEvent(new Event("lms_papers_change"));
+  window.dispatchEvent(new Event("lms_users_change"));
+  window.dispatchEvent(new Event("lms_quizzes_change"));
+  window.dispatchEvent(new Event("lms_evaluations_change"));
+  window.dispatchEvent(new Event("storage"));
+}
+
+/**
+ * Reset and clear all database tables and purge all local sample data
  */
 export async function seedDatabase(): Promise<{
   success: boolean;
@@ -1122,8 +1121,11 @@ export async function seedDatabase(): Promise<{
     if (res) {
       const data = await res.json();
       if (data && data.success) {
+        purgeAllLocalSampleData();
         await syncPapersFromBackend();
         await syncUsersFromBackend();
+        await syncQuizzesFromBackend();
+        await syncEvaluationsFromBackend();
         return data;
       }
       return {
@@ -1153,10 +1155,46 @@ export function getLmsQuizzes(): LMSQuiz[] {
       localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(initialLmsQuizzes));
       return initialLmsQuizzes;
     }
-    return JSON.parse(raw) as LMSQuiz[];
+    const parsed = JSON.parse(raw) as LMSQuiz[];
+    // Clean out obsolete sample quizzes if any remain in storage
+    const cleaned = parsed.filter((q) => q.id !== "quiz-01" && q.id !== "quiz-02");
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(cleaned));
+      return cleaned;
+    }
+    return parsed;
   } catch {
     return initialLmsQuizzes;
   }
+}
+
+export function saveLmsQuizzes(quizzes: LMSQuiz[]): void {
+  if (!isClient()) return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(quizzes));
+    window.dispatchEvent(new Event("lms_quizzes_change"));
+  } catch (err) {
+    console.error("Error saving quizzes:", err);
+  }
+}
+
+/**
+ * Synchronize quizzes & questions from MySQL database (quizzes.php)
+ */
+export async function syncQuizzesFromBackend(): Promise<LMSQuiz[]> {
+  try {
+    const res = await callBackendApi("quizzes.php");
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.quizzes)) {
+        saveLmsQuizzes(data.quizzes);
+        return data.quizzes;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not sync quizzes from backend:", err);
+  }
+  return getLmsQuizzes();
 }
 
 export function saveQuizScore(quizId: string, score: number, totalMarks: number): void {
@@ -1166,8 +1204,7 @@ export function saveQuizScore(quizId: string, score: number, totalMarks: number)
     const updated = quizzes.map((q) =>
       q.id === quizId ? { ...q, completed: true, score, totalMarks } : q
     );
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
-    window.dispatchEvent(new Event("lms_quizzes_change"));
+    saveLmsQuizzes(updated);
   } catch (err) {
     console.error("Error saving quiz score:", err);
   }
@@ -1182,8 +1219,13 @@ export function addLmsQuiz(quizData: Omit<LMSQuiz, "id">): LMSQuiz {
   try {
     const quizzes = getLmsQuizzes();
     const updated = [newQuiz, ...quizzes];
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
-    window.dispatchEvent(new Event("lms_quizzes_change"));
+    saveLmsQuizzes(updated);
+
+    // Sync to MySQL database in background
+    callBackendApi("quizzes.php", {
+      method: "POST",
+      body: JSON.stringify(newQuiz),
+    }).catch(() => {});
   } catch (err) {
     console.error("Error adding quiz:", err);
   }
@@ -1195,8 +1237,13 @@ export function updateLmsQuiz(updatedQuiz: LMSQuiz): void {
   try {
     const quizzes = getLmsQuizzes();
     const updated = quizzes.map((q) => (q.id === updatedQuiz.id ? updatedQuiz : q));
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
-    window.dispatchEvent(new Event("lms_quizzes_change"));
+    saveLmsQuizzes(updated);
+
+    // Sync update to MySQL database in background
+    callBackendApi("quizzes.php", {
+      method: "POST",
+      body: JSON.stringify(updatedQuiz),
+    }).catch(() => {});
   } catch (err) {
     console.error("Error updating quiz:", err);
   }
@@ -1207,8 +1254,12 @@ export function deleteLmsQuiz(quizId: string): void {
   try {
     const quizzes = getLmsQuizzes();
     const updated = quizzes.filter((q) => q.id !== quizId);
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
-    window.dispatchEvent(new Event("lms_quizzes_change"));
+    saveLmsQuizzes(updated);
+
+    // Sync delete to MySQL database in background
+    callBackendApi(`quizzes.php?id=${encodeURIComponent(quizId)}`, {
+      method: "DELETE",
+    }).catch(() => {});
   } catch (err) {
     console.error("Error deleting quiz:", err);
   }
@@ -1221,8 +1272,7 @@ export function retakeLmsQuiz(quizId: string): void {
     const updated = quizzes.map((q) =>
       q.id === quizId ? { ...q, completed: false, score: undefined } : q
     );
-    localStorage.setItem(STORAGE_KEYS.QUIZZES, JSON.stringify(updated));
-    window.dispatchEvent(new Event("lms_quizzes_change"));
+    saveLmsQuizzes(updated);
   } catch (err) {
     console.error("Error resetting quiz:", err);
   }
@@ -1234,16 +1284,40 @@ export function getLmsEvaluations(studentId?: string): LMSEvaluation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.EVALUATIONS);
     const list: LMSEvaluation[] = raw ? JSON.parse(raw) : initialLmsEvaluations;
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(initialLmsEvaluations));
+    // Clean out obsolete sample evaluations
+    const cleaned = list.filter((e) => e.id !== "eval-01");
+    if (raw && cleaned.length !== list.length) {
+      localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(cleaned));
     }
     if (studentId) {
-      return list.filter((e) => e.studentId === studentId);
+      return cleaned.filter((e) => e.studentId === studentId);
     }
-    return list;
+    return cleaned;
   } catch {
     return initialLmsEvaluations;
   }
+}
+
+/**
+ * Synchronize student evaluations from MySQL database (evaluations.php)
+ */
+export async function syncEvaluationsFromBackend(): Promise<LMSEvaluation[]> {
+  try {
+    const res = await callBackendApi("evaluations.php");
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.evaluations)) {
+        if (isClient()) {
+          localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(data.evaluations));
+          window.dispatchEvent(new Event("lms_evaluations_change"));
+        }
+        return data.evaluations;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not sync evaluations from backend:", err);
+  }
+  return getLmsEvaluations();
 }
 
 export function addLmsEvaluation(evalData: Omit<LMSEvaluation, "id">): LMSEvaluation {
@@ -1255,6 +1329,8 @@ export function addLmsEvaluation(evalData: Omit<LMSEvaluation, "id">): LMSEvalua
   const updated = [newEval, ...list];
   if (isClient()) {
     localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_evaluations_change"));
+    window.dispatchEvent(new Event("storage"));
   }
 
   // Sync with MySQL in background
@@ -1264,6 +1340,91 @@ export function addLmsEvaluation(evalData: Omit<LMSEvaluation, "id">): LMSEvalua
   }).catch(() => {});
 
   return newEval;
+}
+
+export interface NationalResultsResponse {
+  results: StudentResult[];
+  availableYears: number[];
+  latestYear: number;
+}
+
+/**
+ * Synchronize national / all-island exam distinction results from MySQL database (results.php?type=national)
+ */
+export async function getNationalResultsFromBackend(year?: number): Promise<NationalResultsResponse> {
+  try {
+    const url = year ? `results.php?type=national&year=${encodeURIComponent(year)}` : "results.php?type=national";
+    const res = await callBackendApi(url);
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.results) && data.results.length > 0) {
+        return {
+          results: data.results,
+          availableYears: Array.isArray(data.availableYears) ? data.availableYears : [2026, 2025],
+          latestYear: data.latestYear || (data.availableYears?.[0] || 2026),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Could not sync national results from backend:", err);
+  }
+  return { results: resultsData, availableYears: [2026, 2025], latestYear: 2025 };
+}
+
+export async function addOrUpdateNationalResult(result: Partial<StudentResult>): Promise<boolean> {
+  try {
+    const res = await callBackendApi("results.php", {
+      method: "POST",
+      body: JSON.stringify({
+        type: "national",
+        ...result,
+      }),
+    });
+    if (res && res.ok) {
+      const data = await res.json();
+      window.dispatchEvent(new Event("lms_national_results_change"));
+      return data.success;
+    }
+  } catch (err) {
+    console.error("Error saving national result:", err);
+  }
+  return false;
+}
+
+export async function bulkAddNationalResults(results: Partial<StudentResult>[]): Promise<{ success: boolean; count: number }> {
+  try {
+    const res = await callBackendApi("results.php", {
+      method: "POST",
+      body: JSON.stringify({
+        type: "national",
+        results,
+      }),
+    });
+    if (res && res.ok) {
+      const data = await res.json();
+      window.dispatchEvent(new Event("lms_national_results_change"));
+      return { success: data.success, count: data.count || 0 };
+    }
+  } catch (err) {
+    console.error("Error bulk saving national results:", err);
+  }
+  return { success: false, count: 0 };
+}
+
+export async function deleteNationalResult(id: string): Promise<boolean> {
+  try {
+    const res = await callBackendApi(`results.php?type=national&id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (res && res.ok) {
+      const data = await res.json();
+      window.dispatchEvent(new Event("lms_national_results_change"));
+      return data.success;
+    }
+  } catch (err) {
+    console.error("Error deleting national result:", err);
+  }
+  return false;
 }
 
 // ========================================================
@@ -1326,11 +1487,9 @@ export async function syncBatchesFromBackend(): Promise<string[]> {
     if (res) {
       const data = await res.json();
       if (data && data.success && Array.isArray(data.batches) && data.batches.length > 0) {
-        const local = getLmsBatches();
-        const merged = Array.from(new Set([...data.batches, ...local]));
-        localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(merged));
+        localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(data.batches));
         window.dispatchEvent(new Event("lms_batches_change"));
-        return merged;
+        return data.batches;
       }
     }
   } catch (err) {
@@ -1355,14 +1514,129 @@ export async function addLmsBatch(batchName: string): Promise<string[]> {
     }
 
     // Persist to MySQL database via API
-    callBackendApi("batches.php", {
-      method: "POST",
-      body: JSON.stringify({ name: clean }),
-    }).catch(() => {});
+    try {
+      const res = await callBackendApi("batches.php", {
+        method: "POST",
+        body: JSON.stringify({ name: clean }),
+      });
+      if (res) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.batches)) {
+          localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(data.batches));
+          window.dispatchEvent(new Event("lms_batches_change"));
+          return data.batches;
+        }
+      }
+    } catch {}
 
     return updated;
   }
   return current;
+}
+
+/**
+ * Update (rename/change) a Commerce batch in the database & local store
+ */
+export async function updateLmsBatch(oldName: string, newName: string): Promise<{ success: boolean; batches: string[]; error?: string }> {
+  const cleanOld = oldName.trim();
+  const cleanNew = newName.trim();
+  if (!cleanOld || !cleanNew) {
+    return { success: false, batches: getLmsBatches(), error: "Both current and new batch names are required." };
+  }
+
+  // Persist update to MySQL database via API
+  let backendBatches: string[] | null = null;
+  try {
+    const res = await callBackendApi("batches.php", {
+      method: "POST",
+      body: JSON.stringify({ action: "update", oldName: cleanOld, newName: cleanNew }),
+    });
+    if (res) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.batches)) {
+        backendBatches = data.batches;
+      }
+    }
+  } catch (e) {
+    console.warn("Error updating batch on backend:", e);
+  }
+
+  // Update local storage batches
+  const current = getLmsBatches();
+  const updatedList = backendBatches || current.map((b) => (b === cleanOld ? cleanNew : b));
+  if (isClient()) {
+    localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(updatedList));
+
+    // Also update any local users enrolled in this batch
+    try {
+      const users = getLmsUsers();
+      let usersChanged = false;
+      users.forEach((u) => {
+        if (u.batch === cleanOld) {
+          u.batch = cleanNew;
+          usersChanged = true;
+        }
+      });
+      if (usersChanged) {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+        window.dispatchEvent(new Event("lms_users_change"));
+      }
+    } catch {}
+
+    // Also update any local papers in this batch
+    try {
+      const papers = getLmsPapers();
+      let papersChanged = false;
+      papers.forEach((p) => {
+        if (p.batch === cleanOld) {
+          p.batch = cleanNew;
+          papersChanged = true;
+        }
+      });
+      if (papersChanged) {
+        localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(papers));
+        window.dispatchEvent(new Event("lms_papers_change"));
+      }
+    } catch {}
+
+    window.dispatchEvent(new Event("lms_batches_change"));
+  }
+
+  return { success: true, batches: updatedList };
+}
+
+/**
+ * Delete a Commerce batch from the database & local store
+ */
+export async function deleteLmsBatch(batchName: string): Promise<{ success: boolean; batches: string[] }> {
+  const clean = batchName.trim();
+  if (!clean) return { success: false, batches: getLmsBatches() };
+
+  // Call database API
+  let backendBatches: string[] | null = null;
+  try {
+    const res = await callBackendApi("batches.php", {
+      method: "POST",
+      body: JSON.stringify({ action: "delete", name: clean }),
+    });
+    if (res) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.batches)) {
+        backendBatches = data.batches;
+      }
+    }
+  } catch (e) {
+    console.warn("Error deleting batch from backend:", e);
+  }
+
+  const current = getLmsBatches();
+  const filtered = backendBatches || current.filter((b) => b !== clean);
+  if (isClient()) {
+    localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(filtered));
+    window.dispatchEvent(new Event("lms_batches_change"));
+  }
+
+  return { success: true, batches: filtered };
 }
 
 function subscribeBatches(callback: () => void) {
@@ -1403,11 +1677,22 @@ export function useLmsBatches() {
   }, []);
 
   const addBatch = async (name: string) => {
-    const updated = await addLmsBatch(name);
-    return updated;
+    return await addLmsBatch(name);
   };
 
-  return { batches, addBatch };
+  const updateBatch = async (oldName: string, newName: string) => {
+    return await updateLmsBatch(oldName, newName);
+  };
+
+  const deleteBatch = async (name: string) => {
+    return await deleteLmsBatch(name);
+  };
+
+  const refreshBatches = async () => {
+    return await syncBatchesFromBackend();
+  };
+
+  return { batches, addBatch, updateBatch, deleteBatch, refreshBatches };
 }
 
 // ========================================================
@@ -1419,15 +1704,104 @@ export function getSecurityPin(): string {
   return localStorage.getItem(STORAGE_KEYS.SECURITY_PIN) || "1234";
 }
 
+/**
+ * Synchronize the Administrator Security PIN from MySQL database (app_settings table)
+ */
+export async function syncSecurityPinFromBackend(): Promise<string> {
+  try {
+    const res = await callBackendApi("settings.php?key=security_pin");
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.pin) {
+        if (isClient()) {
+          localStorage.setItem(STORAGE_KEYS.SECURITY_PIN, data.pin);
+          window.dispatchEvent(new Event("lms_security_pin_change"));
+        }
+        return data.pin;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not sync Security PIN from database:", err);
+  }
+  return getSecurityPin();
+}
+
+/**
+ * Update the Administrator Security PIN, saving directly to MySQL database and updating local cache
+ */
+export async function updateSecurityPinInBackend(
+  newPin: string,
+  currentPin?: string
+): Promise<{ success: boolean; error?: string }> {
+  const cleanPin = newPin.trim();
+  if (!/^\d{4,6}$/.test(cleanPin)) {
+    return { success: false, error: "New PIN must be 4 to 6 numeric digits." };
+  }
+
+  // 1. Update local storage immediately for responsive UI
+  if (isClient()) {
+    localStorage.setItem(STORAGE_KEYS.SECURITY_PIN, cleanPin);
+    window.dispatchEvent(new Event("lms_security_pin_change"));
+  }
+
+  // 2. Persist to MySQL database (app_settings table)
+  try {
+    const res = await callBackendApi("settings.php", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "update_pin",
+        key: "security_pin",
+        newPin: cleanPin,
+        currentPin: currentPin ? currentPin.trim() : undefined,
+      }),
+    });
+
+    if (res) {
+      const data = await res.json();
+      if (data && data.success) {
+        return { success: true };
+      }
+      return { success: false, error: data?.error || "Failed to save Security PIN to MySQL database." };
+    }
+  } catch (err) {
+    console.warn("Could not save Security PIN to MySQL database:", err);
+  }
+
+  return { success: true };
+}
+
 export function setSecurityPin(pin: string): void {
-  if (!isClient()) return;
-  localStorage.setItem(STORAGE_KEYS.SECURITY_PIN, pin.trim());
-  window.dispatchEvent(new Event("lms_security_pin_change"));
+  updateSecurityPinInBackend(pin).catch(() => {});
 }
 
 export function verifySecurityPin(pin: string): boolean {
   const current = getSecurityPin();
   return pin.trim() === current.trim();
+}
+
+/**
+ * Verify Administrator Security PIN directly against MySQL database with local fallback
+ */
+export async function verifySecurityPinAsync(pin: string): Promise<boolean> {
+  const cleanPin = pin.trim();
+  try {
+    const res = await callBackendApi("settings.php", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "verify_pin",
+        pin: cleanPin,
+      }),
+    });
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.success && typeof data.valid === "boolean") {
+        return data.valid;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not verify PIN with backend, falling back to cached PIN:", err);
+  }
+  return verifySecurityPin(cleanPin);
 }
 
 export interface GoogleDriveBackupConfig {

@@ -9,6 +9,7 @@ import {
   FileText,
   HelpCircle,
   Trophy,
+  Award,
   ShieldCheck,
   User as UserIcon,
   Activity,
@@ -31,6 +32,8 @@ import {
   checkBackendStatus,
   syncUsersFromBackend,
   syncPapersFromBackend,
+  syncQuizzesFromBackend,
+  syncEvaluationsFromBackend,
   verifySecurityPin,
 } from "@/lib/lmsStore";
 import { LMSUser } from "@/data/lmsData";
@@ -47,6 +50,7 @@ import AdminQuizzesTab from "@/components/lms/admin/AdminQuizzesTab";
 import AdminUsersTab from "@/components/lms/admin/AdminUsersTab";
 import AdminEvaluationsTab from "@/components/lms/admin/AdminEvaluationsTab";
 import AdminActivityLogTab from "@/components/lms/admin/AdminActivityLogTab";
+import AdminNationalResultsTab from "@/components/lms/admin/AdminNationalResultsTab";
 import AdminSetupTab from "@/components/lms/admin/AdminSetupTab";
 import AdminProfileTab from "@/components/lms/admin/AdminProfileTab";
 import AddStudentModal from "@/components/lms/admin/AddStudentModal";
@@ -57,6 +61,7 @@ type AdminTab =
   | "papers"
   | "quizzes"
   | "users"
+  | "national-results"
   | "evaluations"
   | "activity"
   | "setup"
@@ -71,7 +76,7 @@ export default function AdminLmsPage() {
   // Core LMS Data
   const [users, setUsers] = useState<LMSUser[]>(() => getLmsUsers());
   const [papers, setPapers] = useState(() => getLmsPapers());
-  const [quizzes] = useState(() => getLmsQuizzes());
+  const [quizzes, setQuizzes] = useState(() => getLmsQuizzes());
 
   // Search & Modals
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -91,6 +96,12 @@ export default function AdminLmsPage() {
   } | null>(null);
   const [isCheckingBackend, setIsCheckingBackend] = useState(false);
 
+  const refreshData = () => {
+    setUsers(getLmsUsers());
+    setPapers(getLmsPapers());
+    setQuizzes(getLmsQuizzes());
+  };
+
   const handleCheckBackend = async () => {
     setIsCheckingBackend(true);
     try {
@@ -101,6 +112,9 @@ export default function AdminLmsPage() {
         setUsers(syncedUsers);
         const syncedPapers = await syncPapersFromBackend();
         setPapers(syncedPapers);
+        const syncedQuizzes = await syncQuizzesFromBackend();
+        setQuizzes(syncedQuizzes);
+        await syncEvaluationsFromBackend();
       }
     } finally {
       setIsCheckingBackend(false);
@@ -108,8 +122,12 @@ export default function AdminLmsPage() {
   };
 
   useEffect(() => {
-    if (isLoaded && (!currentUser || currentUser.role !== "admin")) {
-      router.push("/#login");
+    if (isLoaded) {
+      if (!currentUser) {
+        router.push("/#login");
+      } else if (currentUser.role !== "admin") {
+        router.push("/lms/student");
+      }
     }
   }, [isLoaded, currentUser, router]);
 
@@ -130,18 +148,35 @@ export default function AdminLmsPage() {
         if (active) setUsers(syncedUsers);
         const syncedPapers = await syncPapersFromBackend();
         if (active) setPapers(syncedPapers);
+        const syncedQuizzes = await syncQuizzesFromBackend();
+        if (active) setQuizzes(syncedQuizzes);
+        await syncEvaluationsFromBackend();
       }
     });
 
+    const handleQuizzesChange = () => {
+      if (active) setQuizzes(getLmsQuizzes());
+    };
+    const handlePapersChange = () => {
+      if (active) setPapers(getLmsPapers());
+    };
+    const handleUsersChange = () => {
+      if (active) setUsers(getLmsUsers());
+    };
+
+    window.addEventListener("lms_quizzes_change", handleQuizzesChange);
+    window.addEventListener("lms_papers_change", handlePapersChange);
+    window.addEventListener("lms_users_change", handleUsersChange);
+    window.addEventListener("storage", refreshData);
+
     return () => {
       active = false;
+      window.removeEventListener("lms_quizzes_change", handleQuizzesChange);
+      window.removeEventListener("lms_papers_change", handlePapersChange);
+      window.removeEventListener("lms_users_change", handleUsersChange);
+      window.removeEventListener("storage", refreshData);
     };
   }, []);
-
-  const refreshData = () => {
-    setUsers(getLmsUsers());
-    setPapers(getLmsPapers());
-  };
 
   const handleLogout = () => {
     logoutLms();
@@ -223,6 +258,7 @@ export default function AdminLmsPage() {
       icon: Users,
       count: users.length,
     },
+    { id: "national-results", label: "National Results", icon: Award },
     { id: "evaluations", label: "Leaderboard", icon: Trophy },
     { id: "activity", label: "Activity Logs", icon: Activity },
     { id: "setup", label: "System Setup", icon: ShieldCheck },
@@ -320,6 +356,10 @@ export default function AdminLmsPage() {
 
             {activeTab === "quizzes" && (
               <AdminQuizzesTab quizzes={quizzes} onRefresh={refreshData} />
+            )}
+
+            {activeTab === "national-results" && (
+              <AdminNationalResultsTab onSuccess={refreshData} />
             )}
 
             {activeTab === "evaluations" && (

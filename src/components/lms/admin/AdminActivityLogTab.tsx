@@ -9,9 +9,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
+  RefreshCw,
+  Database,
 } from "lucide-react";
 import {
   getActivityLogs,
+  syncActivityLogsFromBackend,
   clearActivityLogs,
   LMSActivityLog,
 } from "@/lib/activityLogService";
@@ -24,15 +27,36 @@ export default function AdminActivityLogTab() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  const handleSyncDb = async () => {
+    setIsSyncing(true);
+    try {
+      const dbLogs = await syncActivityLogsFromBackend();
+      setLogs(dbLogs);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
+    let active = true;
     const refresh = () => setLogs(getActivityLogs());
+    refresh();
+
+    syncActivityLogsFromBackend().then((dbLogs) => {
+      if (active && dbLogs) setLogs(dbLogs);
+    });
+
     window.addEventListener("lms_activity_logs_change", refresh);
-    return () => window.removeEventListener("lms_activity_logs_change", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("lms_activity_logs_change", refresh);
+    };
   }, []);
 
   const filteredLogs = useMemo(() => {
@@ -54,15 +78,13 @@ export default function AdminActivityLogTab() {
     });
   }, [logs, searchQuery, categoryFilter, roleFilter]);
 
-  // Reset page when filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, categoryFilter, roleFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
 
   const paginatedLogs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    const start = (safePage - 1) * pageSize;
     return filteredLogs.slice(start, start + pageSize);
-  }, [filteredLogs, currentPage, pageSize]);
+  }, [filteredLogs, safePage, pageSize]);
 
   const handleExportCsv = () => {
     const headers = ["ID", "Timestamp", "User", "Role", "Category", "Action", "Details", "IP Address", "Device"];
@@ -109,6 +131,16 @@ export default function AdminActivityLogTab() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleSyncDb}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#007fb8]/30 bg-[#e0f2fe] px-4 py-2 text-xs font-black text-[#007fb8] shadow-xs hover:bg-[#bae6fd] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={isSyncing ? "animate-spin" : ""} />
+            <span>{isSyncing ? "Syncing..." : "Sync Database"}</span>
+          </button>
+
           <button
             type="button"
             onClick={handleExportCsv}
@@ -263,7 +295,7 @@ export default function AdminActivityLogTab() {
 
         {/* Activity Logs Pagination */}
         <LmsPagination
-          currentPage={currentPage}
+          currentPage={safePage}
           totalItems={filteredLogs.length}
           pageSize={pageSize}
           onPageChange={setCurrentPage}

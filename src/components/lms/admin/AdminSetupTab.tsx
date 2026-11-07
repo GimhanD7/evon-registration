@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
   Lock,
@@ -21,15 +21,27 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  GraduationCap,
+  Edit2,
+  Trash2,
+  Plus,
+  Database,
+  Users,
+  X,
 } from "lucide-react";
 import { LMSUser } from "@/data/lmsData";
 import {
   setSecurityPin,
   verifySecurityPin,
+  verifySecurityPinAsync,
+  updateSecurityPinInBackend,
+  syncSecurityPinFromBackend,
   getGoogleDriveBackupConfig,
   saveGoogleDriveBackupConfig,
   generateFullDatabaseDump,
   GoogleDriveBackupConfig,
+  useLmsBatches,
+  getLmsUsers,
 } from "@/lib/lmsStore";
 import { logActivity } from "@/lib/activityLogService";
 import { getDirectBackendUrl } from "@/lib/apiConfig";
@@ -85,13 +97,152 @@ export default function AdminSetupTab({
   // 3. Console Security Settings
   const [autoLockTimeout, setAutoLockTimeout] = useState("15");
 
-  // Handle PIN Update
-  const handleUpdatePin = (e: React.FormEvent) => {
+  // 4. Commerce Batches Management State (Stored in MySQL `batches` table)
+  const {
+    batches: dbBatches,
+    addBatch,
+    updateBatch,
+    deleteBatch,
+    refreshBatches,
+  } = useLmsBatches();
+  const [newBatchName, setNewBatchName] = useState("");
+  const [editingBatch, setEditingBatch] = useState<{
+    oldName: string;
+    newName: string;
+  } | null>(null);
+  const [isBatchActionLoading, setIsBatchActionLoading] = useState(false);
+  const [isSyncingBatches, setIsSyncingBatches] = useState(false);
+  const [batchMsg, setBatchMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [allLmsUsers, setAllLmsUsers] = useState<LMSUser[]>(() => getLmsUsers());
+
+  // Listen for user changes to keep enrolled counts accurate
+  useEffect(() => {
+    const handleUserChange = () => setAllLmsUsers(getLmsUsers());
+    window.addEventListener("lms_users_change", handleUserChange);
+    return () => window.removeEventListener("lms_users_change", handleUserChange);
+  }, []);
+
+  const getEnrolledStudentCount = (batchName: string) => {
+    return allLmsUsers.filter(
+      (u) => (u.batch || "").trim().toLowerCase() === batchName.trim().toLowerCase() && u.role === "student"
+    ).length;
+  };
+
+  const handleCreateBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newBatchName.trim();
+    if (!clean) return;
+    setIsBatchActionLoading(true);
+    setBatchMsg(null);
+    try {
+      await addBatch(clean);
+      logActivity(
+        "Add Commerce Batch",
+        "system",
+        `Created new Commerce batch '${clean}' in MySQL database`,
+        currentUser,
+        "success"
+      );
+      setBatchMsg({ text: `Commerce Batch '${clean}' successfully created in MySQL database.`, ok: true });
+      setNewBatchName("");
+    } catch {
+      setBatchMsg({ text: "Failed to add batch to database.", ok: false });
+    } finally {
+      setIsBatchActionLoading(false);
+      setTimeout(() => setBatchMsg(null), 4000);
+    }
+  };
+
+  const handleSaveBatchEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBatch) return;
+    const cleanNew = editingBatch.newName.trim();
+    if (!cleanNew) return;
+    setIsBatchActionLoading(true);
+    setBatchMsg(null);
+    try {
+      const res = await updateBatch(editingBatch.oldName, cleanNew);
+      if (res.success) {
+        logActivity(
+          "Update Commerce Batch",
+          "system",
+          `Changed Commerce batch '${editingBatch.oldName}' to '${cleanNew}' in MySQL database`,
+          currentUser,
+          "success"
+        );
+        setAllLmsUsers(getLmsUsers());
+        setBatchMsg({
+          text: `Batch '${editingBatch.oldName}' successfully renamed to '${cleanNew}' across MySQL database and all enrolled students!`,
+          ok: true,
+        });
+        setEditingBatch(null);
+      } else {
+        setBatchMsg({ text: res.error || "Failed to update batch.", ok: false });
+      }
+    } catch {
+      setBatchMsg({ text: "Error updating batch in database.", ok: false });
+    } finally {
+      setIsBatchActionLoading(false);
+      setTimeout(() => setBatchMsg(null), 5000);
+    }
+  };
+
+  const handleDeleteBatchClick = async (batchNameToDelete: string) => {
+    const studentCount = getEnrolledStudentCount(batchNameToDelete);
+    const confirmPrompt =
+      studentCount > 0
+        ? `Warning: There are ${studentCount} student(s) currently enrolled in '${batchNameToDelete}'. Are you sure you want to remove this batch from the database?`
+        : `Are you sure you want to remove '${batchNameToDelete}' from the database?`;
+    if (!window.confirm(confirmPrompt)) return;
+
+    setIsBatchActionLoading(true);
+    setBatchMsg(null);
+    try {
+      await deleteBatch(batchNameToDelete);
+      logActivity(
+        "Delete Commerce Batch",
+        "system",
+        `Deleted Commerce batch '${batchNameToDelete}' from MySQL database`,
+        currentUser,
+        "warning"
+      );
+      setBatchMsg({ text: `Batch '${batchNameToDelete}' removed from MySQL database.`, ok: true });
+    } catch {
+      setBatchMsg({ text: "Failed to delete batch from database.", ok: false });
+    } finally {
+      setIsBatchActionLoading(false);
+      setTimeout(() => setBatchMsg(null), 4000);
+    }
+  };
+
+  const handleSyncBatches = async () => {
+    setIsSyncingBatches(true);
+    setBatchMsg(null);
+    try {
+      await refreshBatches();
+      setAllLmsUsers(getLmsUsers());
+      setBatchMsg({ text: "Successfully synchronized Commerce batches from MySQL database.", ok: true });
+    } catch {
+      setBatchMsg({ text: "Failed to sync batches from database.", ok: false });
+    } finally {
+      setIsSyncingBatches(false);
+      setTimeout(() => setBatchMsg(null), 3000);
+    }
+  };
+
+  // Sync Security PIN from MySQL database on mount
+  useEffect(() => {
+    syncSecurityPinFromBackend().catch(() => {});
+  }, []);
+
+  // Handle PIN Update (Persists to MySQL Database)
+  const handleUpdatePin = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinErrorMsg("");
     setPinSuccessMsg("");
 
-    if (!verifySecurityPin(inputCurrentPin)) {
+    const isCurrentValid = await verifySecurityPinAsync(inputCurrentPin);
+    if (!isCurrentValid) {
       setPinErrorMsg("Current PIN is incorrect.");
       return;
     }
@@ -106,15 +257,20 @@ export default function AdminSetupTab({
       return;
     }
 
-    setSecurityPin(newPin);
+    const res = await updateSecurityPinInBackend(newPin, inputCurrentPin);
+    if (!res.success) {
+      setPinErrorMsg(res.error || "Failed to update Security PIN in MySQL database.");
+      return;
+    }
+
     setInputCurrentPin("");
     setNewPin("");
     setConfirmNewPin("");
-    setPinSuccessMsg("Administrator Delete Security PIN updated successfully!");
+    setPinSuccessMsg("Administrator Security PIN successfully updated and saved in MySQL database!");
     logActivity(
       "Delete Security PIN Changed",
       "security",
-      "Administrator updated the master deletion security PIN",
+      "Administrator updated the database master deletion security PIN",
       currentUser,
       "warning"
     );
@@ -755,7 +911,198 @@ export default function AdminSetupTab({
       </div>
 
       {/* ========================================================
-          CARD C: CONSOLE PANEL SECURITY & XAMPP CONNECTION
+          CARD C: COMMERCE BATCH ENROLLED & ACADEMIC PROGRAMS (DATABASE)
+          ======================================================== */}
+      <div className="rounded-3xl border border-[#cddce5] bg-white p-6 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#cddce5]/60 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-[#e0f2fe] text-[#007fb8] border border-[#007fb8]/30">
+              <GraduationCap size={20} />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm sm:text-base font-black text-[#102c45]">
+                  Commerce Batch Enrolled &amp; Academic Programs
+                </h4>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f7f2] border border-[#38d995]/50 px-2.5 py-0.5 text-[10px] font-black text-[#159366]">
+                  <Database size={11} /> MySQL Database
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-[#60768a] mt-0.5">
+                Manage all Commerce academic batches stored in MySQL (<code className="text-[#007fb8] font-mono">batches</code> table). Changes here immediately update all student registration forms and cascade across all enrolled records.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSyncBatches}
+            disabled={isSyncingBatches}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#007fb8]/30 bg-[#e0f2fe] px-4 py-2 text-xs font-black text-[#007fb8] hover:bg-[#007fb8] hover:text-white transition-all cursor-pointer shadow-2xs shrink-0 self-start sm:self-auto"
+          >
+            <RefreshCw size={13} className={isSyncingBatches ? "animate-spin" : ""} />
+            <span>Sync Database Batches</span>
+          </button>
+        </div>
+
+        {/* Feedback message */}
+        {batchMsg && (
+          <div
+            className={`rounded-2xl border p-3 text-xs font-black flex items-center gap-2 ${
+              batchMsg.ok
+                ? "bg-[#e8f7f2] border-[#38d995] text-[#159366]"
+                : "bg-red-50 border-red-200 text-red-600"
+            }`}
+          >
+            {batchMsg.ok ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{batchMsg.text}</span>
+          </div>
+        )}
+
+        {/* Add New Batch Inline Form */}
+        <form onSubmit={handleCreateBatch} className="rounded-2xl border border-[#cddce5] bg-[#edf2f3]/40 p-4">
+          <label className="block text-xs font-black text-[#102c45] mb-1.5">
+            Add New Commerce Batch to Database:
+          </label>
+          <div className="flex flex-col sm:flex-row items-center gap-2.5">
+            <input
+              type="text"
+              value={newBatchName}
+              onChange={(e) => setNewBatchName(e.target.value)}
+              placeholder="e.g. 2028 O/L Commerce Foundation or 2027 Sunday Special Batch"
+              className="w-full flex-1 rounded-xl border border-[#cddce5] bg-white px-3.5 py-2 text-xs font-bold text-[#102c45] outline-none focus:border-[#007fb8]"
+            />
+            <button
+              type="submit"
+              disabled={isBatchActionLoading || !newBatchName.trim()}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#102c45] px-5 py-2 text-xs font-black text-white hover:bg-[#007fb8] active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              <Plus size={14} />
+              <span>Add Batch to Database</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Live Database Batches List */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-[#60768a] px-1">
+            <span>
+              Active Database Batches (<strong className="text-[#102c45]">{dbBatches.length}</strong> configured)
+            </span>
+            <span>Enrolled Students</span>
+          </div>
+
+          <div className="divide-y divide-[#cddce5]/60 rounded-2xl border border-[#cddce5] bg-white overflow-hidden">
+            {dbBatches.map((batchItem, index) => {
+              const count = getEnrolledStudentCount(batchItem);
+              const isEditing = editingBatch?.oldName === batchItem;
+
+              return (
+                <div
+                  key={batchItem}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 hover:bg-[#f8fafc] transition-colors"
+                >
+                  {isEditing ? (
+                    <form
+                      onSubmit={handleSaveBatchEdit}
+                      className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={editingBatch.newName}
+                        onChange={(e) =>
+                          setEditingBatch({
+                            ...editingBatch,
+                            newName: e.target.value,
+                          })
+                        }
+                        className="flex-1 rounded-xl border border-[#007fb8] bg-white px-3 py-1.5 text-xs font-bold text-[#102c45] outline-none"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={isBatchActionLoading || !editingBatch.newName.trim()}
+                          className="rounded-xl bg-[#159366] px-3.5 py-1.5 text-xs font-black text-white hover:bg-[#127d56] transition-all cursor-pointer"
+                        >
+                          Save Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingBatch(null)}
+                          className="rounded-xl border border-[#cddce5] px-3 py-1.5 text-xs font-bold text-[#60768a] hover:bg-[#edf2f3] transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="flex size-7 items-center justify-center rounded-lg bg-[#edf2f3] font-mono text-[11px] font-black text-[#60768a] shrink-0">
+                          #{index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <h5 className="text-xs font-black text-[#102c45] truncate">
+                            {batchItem}
+                          </h5>
+                          <div className="flex items-center gap-2 text-[10.5px] text-[#60768a]">
+                            <span>Program ID: batch-{index + 1}</span>
+                            <span>&bull;</span>
+                            <span className="text-[#007fb8] font-bold">Commerce Stream</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black ${
+                            count > 0
+                              ? "bg-[#e0f2fe] text-[#007fb8] border border-[#bae6fd]"
+                              : "bg-gray-100 text-[#60768a]"
+                          }`}
+                        >
+                          <Users size={12} />
+                          <span>{count} Student{count === 1 ? "" : "s"} Enrolled</span>
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingBatch({
+                                oldName: batchItem,
+                                newName: batchItem,
+                              })
+                            }
+                            title="Edit or Rename this batch in database"
+                            className="inline-flex items-center gap-1 rounded-xl border border-[#cddce5] bg-white px-2.5 py-1.5 text-xs font-bold text-[#102c45] hover:border-[#007fb8] hover:text-[#007fb8] transition-all cursor-pointer"
+                          >
+                            <Edit2 size={12} />
+                            <span>Change</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBatchClick(batchItem)}
+                            title="Delete this batch from database"
+                            className="inline-flex items-center justify-center size-8 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          CARD D: CONSOLE PANEL SECURITY & XAMPP CONNECTION
           ======================================================== */}
       <div className="rounded-3xl border border-[#cddce5] bg-white p-6 shadow-xs space-y-5">
         <div className="flex items-center justify-between border-b border-[#cddce5]/60 pb-3">
@@ -817,14 +1164,14 @@ export default function AdminSetupTab({
           </div>
 
           <div className="rounded-2xl border border-[#cddce5] bg-[#edf2f3]/40 p-4 space-y-2">
-            <span className="font-bold text-[#60768a] block">One-Click Seed Database:</span>
+            <span className="font-bold text-[#60768a] block">Initialize Clean Database:</span>
             <a
               href={getDirectBackendUrl("api/seed.php")}
               target="_blank"
               rel="noreferrer"
               className="inline-block rounded-xl border border-[#007fb8]/40 bg-white px-3 py-1.5 font-black text-[#007fb8] hover:bg-[#e0f2fe] transition-all"
             >
-              Run seed.php &rarr;
+              Reset to Clean DB &rarr;
             </a>
           </div>
         </div>

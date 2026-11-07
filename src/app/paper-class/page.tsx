@@ -12,6 +12,7 @@ import {
   X,
   ShieldCheck,
   Award,
+  FileText,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -32,7 +33,10 @@ import {
 export default function PaperClassResultsPage() {
   const { user: currentUser } = useCurrentLmsUser();
   const [papers, setPapers] = useState<PaperClassItem[]>(() => getCombinedModelPapers());
-  const [selectedPaperId, setSelectedPaperId] = useState<string>("paper-01");
+  const [selectedPaperId, setSelectedPaperId] = useState<string>(() => {
+    const list = getCombinedModelPapers();
+    return list[0]?.id || "";
+  });
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string | undefined>(
@@ -222,37 +226,53 @@ export default function PaperClassResultsPage() {
             </div>
           </div>
 
-          {/* Quick Paper Navigation Tabs */}
-          <div className="mt-6 flex items-center justify-between gap-3 overflow-x-auto pb-2 scrollbar-thin">
-            <div className="flex items-center gap-2">
-              {papers.map((paper) => {
-                const isSelected = selectedPaperId === paper.id;
-                return (
-                  <button
-                    key={paper.id}
-                    type="button"
-                    onClick={() => setSelectedPaperId(paper.id)}
-                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-2xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-[#0c2944] text-white shadow-sm ring-2 ring-[#38d995]"
-                        : "border border-[#cddce5] bg-white text-[#60768a] hover:border-[#007fb8] hover:text-[#102c45]"
-                    }`}
-                  >
-                    <span>{paper.paperNumber}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                        isSelected
-                          ? "bg-[#38d995] text-[#0c2944]"
-                          : "bg-[#edf2f3] text-[#159366]"
-                      }`}
-                    >
-                      Top: {paper.highestMark}%
-                    </span>
-                  </button>
-                );
-              })}
+          {!activePaper ? (
+            <div className="mt-8 rounded-3xl border-2 border-dashed border-[#cddce5] bg-white p-12 text-center space-y-4 shadow-xs">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-[#edf2f3] text-[#007fb8]">
+                <FileText size={32} />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h3 className="text-lg font-black text-[#102c45]">
+                  No Model Exam Papers Published Yet
+                </h3>
+                <p className="text-xs text-[#60768a]">
+                  Exam papers and student results published by Evon Aravinda will appear here in real-time.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Quick Paper Navigation Tabs */}
+              <div className="mt-6 flex items-center justify-between gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                <div className="flex items-center gap-2">
+                  {papers.map((paper) => {
+                    const isSelected = selectedPaperId === paper.id;
+                    return (
+                      <button
+                        key={paper.id}
+                        type="button"
+                        onClick={() => setSelectedPaperId(paper.id)}
+                        className={`inline-flex items-center gap-2 whitespace-nowrap rounded-2xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-[#0c2944] text-white shadow-sm ring-2 ring-[#38d995]"
+                            : "border border-[#cddce5] bg-white text-[#60768a] hover:border-[#007fb8] hover:text-[#102c45]"
+                        }`}
+                      >
+                        <span>{paper.paperNumber}</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                            isSelected
+                              ? "bg-[#38d995] text-[#0c2944]"
+                              : "bg-[#edf2f3] text-[#159366]"
+                          }`}
+                        >
+                          Top: {paper.highestMark}%
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
           {/* LOGGED IN STUDENT'S PERSONAL RESULT BANNER */}
           {myResult && activePaper && (
@@ -551,6 +571,8 @@ export default function PaperClassResultsPage() {
               )}
             </div>
           </section>
+          </>
+          )}
 
           {/* Section: Register Call to Action */}
           <section className="mt-12 overflow-hidden rounded-3xl border border-[#cddce5] bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] p-8 text-white shadow-xl sm:p-9">

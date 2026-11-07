@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg7" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#bg7)"/>
+  <!-- Blazer -->
+  <path d="M26 110 C26 86 42 80 60 80 C78 80 94 86 94 110 Z" fill="#0f766e"/>
+  <polygon points="50,80 60,96 70,80" fill="#fef08a"/>
+  <!-- Neck -->
+  <rect x="53" y="68" width="14" height="16" rx="4" fill="#fed7aa"/>
+  <!-- Hair Bun -->
+  <circle cx="60" cy="22" r="10" fill="#292524"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="52" rx="22" ry="24" fill="#fed7aa"/>
+  <!-- Hair Front -->
+  <path d="M37 48 C36 30 48 24 60 24 C72 24 84 30 83 48 C78 34 70 32 60 32 C50 32 42 34 37 48 Z" fill="#292524"/>
+  <!-- Red Glasses -->
+  <rect x="42" y="46" width="14" height="11" rx="3.5" fill="none" stroke="#ef4444" stroke-width="2.2"/>
+  <rect x="64" y="46" width="14" height="11" rx="3.5" fill="none" stroke="#ef4444" stroke-width="2.2"/>
+  <line x1="56" y1="51" x2="64" y2="51" stroke="#ef4444" stroke-width="2"/>
+  <!-- Eyes -->
+  <circle cx="49" cy="51.5" r="2.5" fill="#292524"/>
+  <circle cx="71" cy="51.5" r="2.5" fill="#292524"/>
+  <!-- Smile -->
+  <path d="M53 64 Q60 70 67 64" fill="none" stroke="#be123c" stroke-width="2" stroke-linecap="round"/>
+</svg>
