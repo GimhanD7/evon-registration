@@ -51,6 +51,8 @@ import {
   normalizeGoogleDriveFolderId,
   generateGoogleAppsScriptCode,
   testGoogleDriveWebhook,
+  downloadSqlDumpFile,
+  downloadJsonDumpFile,
   DriveUploadResult,
 } from "@/lib/googleDriveBackupService";
 
@@ -318,11 +320,11 @@ export default function AdminSetupTab({
 
       if (res.driveUploaded) {
         setBackupSuccessMsg(
-          `Backup file [${res.filename}] uploaded directly into Google Drive folder [${normalizeGoogleDriveFolderId(gdriveConfig.folderId)}]!`
+          `Complete MySQL SQL dump [${res.sqlFilename || res.filename}] covering all 11 tables uploaded directly into Google Drive folder [${normalizeGoogleDriveFolderId(gdriveConfig.folderId)}]!`
         );
       } else {
         setBackupWarningMsg(
-          `Snapshot generated and archived on your local server (${res.filename}). It has NOT uploaded to Google Drive because Google Drive requires your Webhook URL to be configured below.`
+          `Complete MySQL SQL dump generated and archived on your local server (${res.sqlFilename || res.filename}). It has NOT auto-uploaded to Google Drive because Google Drive requires the Webhook URL to be configured below.`
         );
       }
     } catch {
@@ -333,21 +335,12 @@ export default function AdminSetupTab({
   };
 
   const handleDownloadAndOpenDrive = () => {
-    handleDownloadJsonDump();
+    downloadSqlDumpFile();
     window.open(getGoogleDriveFolderUrl(gdriveConfig.folderId), "_blank");
   };
 
   const handleDownloadJsonDump = () => {
-    const dump = generateFullDatabaseDump();
-    const blob = new Blob([dump.jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `evon_lms_db_backup_${dump.timestamp}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadJsonDumpFile();
   };
 
   const handleCopyAppsScript = () => {
@@ -358,16 +351,7 @@ export default function AdminSetupTab({
   };
 
   const handleDownloadSqlDump = () => {
-    const dump = generateFullDatabaseDump();
-    const blob = new Blob([dump.sqlString], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `evon_lms_mysql_dump_${dump.timestamp}.sql`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadSqlDumpFile();
   };
 
   return (
@@ -831,7 +815,7 @@ export default function AdminSetupTab({
 
               {/* Backup Status Strip */}
               <div className="rounded-2xl border border-[#cddce5] bg-[#f8fafc] p-2.5 flex items-center justify-between text-[11px]">
-                <span className="font-bold text-[#60768a]">Latest Cloud Sync Status:</span>
+                <span className="font-bold text-[#60768a]">All Tables MySQL Sync:</span>
                 <span className="font-bold text-[#102c45] flex items-center gap-1">
                   {gdriveConfig.lastBackupStatus === "success" && (
                     <CheckCircle2 size={13} className="text-[#159366]" />
@@ -856,10 +840,10 @@ export default function AdminSetupTab({
                   disabled={isBackingUp}
                   onClick={handleTriggerGoogleDriveBackup}
                   className="flex-1 rounded-full bg-[linear-gradient(135deg,#007fb8_0%,#0ac9e8_100%)] py-2.5 px-4 text-xs font-black uppercase text-white shadow-md hover:opacity-95 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  title="Upload directly to Google Drive without downloading to computer"
+                  title="Upload complete all-tables MySQL dump directly to Google Drive folder"
                 >
                   <FolderSync size={14} className={isBackingUp ? "animate-spin" : ""} />
-                  <span>{isBackingUp ? "Uploading to Drive..." : "Auto Upload to Google Drive"}</span>
+                  <span>{isBackingUp ? "Uploading .SQL to Drive..." : "Auto Backup All Tables (.SQL) to Google Drive"}</span>
                 </button>
 
                 <div className="flex items-center gap-1.5 self-center">
@@ -867,10 +851,20 @@ export default function AdminSetupTab({
                     type="button"
                     onClick={handleDownloadAndOpenDrive}
                     className="rounded-full border border-[#007fb8] bg-blue-50/60 px-3 py-2 text-[11px] font-bold text-[#007fb8] hover:bg-blue-100/70 active:scale-95 transition-all cursor-pointer shadow-2xs flex items-center gap-1"
-                    title="Download snapshot and immediately open Google Drive folder to upload"
+                    title="Download complete .SQL dump and immediately open Google Drive folder to upload"
                   >
                     <ExternalLink size={12} />
                     <span>Download &amp; Open Drive</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadSqlDump}
+                    className="rounded-full border border-emerald-500 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                    title="Download complete MySQL .SQL dump covering all 11 tables"
+                  >
+                    <Download size={12} />
+                    <span>Download .SQL (All Tables)</span>
                   </button>
 
                   <button
@@ -881,16 +875,6 @@ export default function AdminSetupTab({
                   >
                     <Download size={12} />
                     <span>.JSON</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDownloadSqlDump}
-                    className="rounded-full border border-[#cddce5] bg-white px-2.5 py-2 text-[11px] font-bold text-[#102c45] hover:bg-[#edf2f3] active:scale-95 transition-all cursor-pointer shadow-2xs flex items-center gap-1"
-                    title="Download raw MySQL .SQL dump"
-                  >
-                    <Download size={12} />
-                    <span>.SQL</span>
                   </button>
                 </div>
               </div>

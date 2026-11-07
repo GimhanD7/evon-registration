@@ -117,6 +117,7 @@ export interface DriveUploadResult {
   uploadMethod?: "webhook" | "oauth" | "server_archive";
   message: string;
   filename: string;
+  sqlFilename?: string;
   timestamp: string;
   folderId: string;
   folderUrl: string;
@@ -126,6 +127,7 @@ export interface DriveUploadResult {
     sql_file: string;
     json_size_kb: number;
     sql_size_kb?: number;
+    path?: string;
   };
   stats: {
     users: number;
@@ -133,6 +135,7 @@ export interface DriveUploadResult {
     quizzes: number;
     evaluations: number;
     batches: number;
+    total_tables?: number;
   };
 }
 
@@ -291,30 +294,40 @@ export async function executeGoogleDriveBackup(
   const config = { ...getGoogleDriveBackupConfig(), ...(configOverride || {}) };
   const cleanFolderId = normalizeGoogleDriveFolderId(config.folderId);
   const dump = generateFullDatabaseDump();
-  const filename = `evon_lms_backup_${dump.timestamp}.json`;
+  const sqlFilename = `evon_lms_all_tables_dump_${dump.timestamp}.sql`;
+  const jsonFilename = `evon_lms_db_backup_${dump.timestamp}.json`;
 
   let driveFileUrl = config.lastBackupFileUrl;
   let driveUploaded = false;
   let uploadMethod: "webhook" | "oauth" | "server_archive" = "server_archive";
   let backendResult: {
     google_drive?: { uploaded?: string; file_url?: string };
-    local_backup?: { json_file: string; sql_file: string; json_size_kb: number; sql_size_kb?: number };
+    local_backup?: { json_file: string; sql_file: string; json_size_kb: number; sql_size_kb?: number; path?: string };
   } | null = null;
 
   // 1. Try OAuth REST API if accessToken is configured
   if (config.accessToken && config.accessToken.trim().length > 10) {
     try {
+      // Primary: Upload SQL Dump
       const oauthResult = await uploadViaGoogleDriveRestApi(
         config.accessToken.trim(),
         cleanFolderId,
-        filename,
-        dump.jsonString
+        sqlFilename,
+        dump.sqlString
       );
       if (oauthResult.fileId) {
         driveUploaded = true;
         driveFileUrl = oauthResult.fileUrl;
         uploadMethod = "oauth";
       }
+
+      // Also upload JSON
+      await uploadViaGoogleDriveRestApi(
+        config.accessToken.trim(),
+        cleanFolderId,
+        jsonFilename,
+        dump.jsonString
+      ).catch(() => {});
     } catch (oauthErr) {
       console.warn("[Google Drive Backup] OAuth API upload failed:", oauthErr);
     }
@@ -351,27 +364,42 @@ export async function executeGoogleDriveBackup(
 
   if (isDirectWebhook && config.webhookUrl && !driveUploaded) {
     try {
-      const webhookRes = await fetch(config.webhookUrl, {
+      // Primary: Upload the complete .SQL Dump file to Google Drive Webhook
+      const webhookSqlRes = await fetch(config.webhookUrl, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // text/plain prevents CORS preflight issues on Google Apps Script
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           folderId: cleanFolderId,
-          filename: filename,
-          content: dump.jsonString,
-          mimeType: "application/json",
+          filename: sqlFilename,
+          content: dump.sqlString,
+          mimeType: "text/plain",
           timestamp: dump.timestamp,
           stats: dump.stats,
         }),
       });
 
-      if (webhookRes.ok) {
-        const data = await webhookRes.json();
+      if (webhookSqlRes.ok) {
+        const data = await webhookSqlRes.json();
         if (data.status === "success" || data.url || data.fileId) {
           driveUploaded = true;
           driveFileUrl = data.url || `https://drive.google.com/file/d/${data.fileId}/view`;
           uploadMethod = "webhook";
         }
       }
+
+      // Secondary: Also upload .JSON backup file
+      fetch(config.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          folderId: cleanFolderId,
+          filename: jsonFilename,
+          content: dump.jsonString,
+          mimeType: "application/json",
+          timestamp: dump.timestamp,
+          stats: dump.stats,
+        }),
+      }).catch(() => {});
     } catch (err) {
       console.warn("[Google Drive Backup] Direct browser webhook upload notice:", err);
     }
@@ -379,17 +407,7 @@ export async function executeGoogleDriveBackup(
 
   // 4. Fallback: If user explicitly triggered manual file download
   if (forceDownloadFallback) {
-    try {
-      const blob = new Blob([dump.jsonString], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch {}
+    downloadSqlDumpFile(dump.sqlString, sqlFilename);
   }
 
   // Update store config
@@ -397,7 +415,7 @@ export async function executeGoogleDriveBackup(
     folderId: cleanFolderId,
     lastBackupTime: new Date().toISOString(),
     lastBackupStatus: driveUploaded ? "success" : "pending",
-    lastBackupFileName: filename,
+    lastBackupFileName: sqlFilename,
     lastBackupFileUrl: driveFileUrl || getGoogleDriveFolderUrl(cleanFolderId),
   });
 
@@ -405,22 +423,23 @@ export async function executeGoogleDriveBackup(
     driveUploaded ? "Google Drive Auto Backup Uploaded" : "Database Server Backup Generated",
     "system",
     driveUploaded
-      ? `Successfully auto-uploaded snapshot (${dump.stats.users} users, ${dump.stats.papers} papers, ${dump.stats.quizzes} quizzes) directly to Google Drive folder [${cleanFolderId}].`
-      : `Generated database backup snapshot (${dump.stats.users} users, ${dump.stats.papers} papers). Archived on local server; Google Drive upload pending webhook authorization.`,
+      ? `Successfully auto-uploaded complete MySQL SQL dump (${dump.stats.total_tables || 11} tables, ${dump.stats.users} users, ${dump.stats.papers} papers) directly to Google Drive folder [${cleanFolderId}].`
+      : `Generated complete database SQL dump (${dump.stats.total_tables || 11} tables). Archived on server; Google Drive auto-upload pending webhook authorization.`,
     currentUser,
     driveUploaded ? "success" : "warning"
   );
 
   const resultMessage = driveUploaded
-    ? "Backup file successfully uploaded directly to your Google Drive folder!"
-    : "Backup snapshot safely archived on your local server. To make files appear automatically inside Google Drive folder 1i2-dqALmlGCJO5FwBfylxHxJeCHY9YgB, please connect your Google Drive Webhook.";
+    ? "Complete MySQL SQL dump covering all tables successfully uploaded to your Google Drive folder!"
+    : "Complete MySQL SQL dump safely archived on your local server. Connect your Google Drive Webhook to auto-sync to folder 1i2-dqALmlGCJO5FwBfylxHxJeCHY9YgB.";
 
   return {
     success: true,
     driveUploaded,
     uploadMethod,
     message: resultMessage,
-    filename,
+    filename: jsonFilename,
+    sqlFilename,
     timestamp: dump.timestamp,
     folderId: cleanFolderId,
     folderUrl: getGoogleDriveFolderUrl(cleanFolderId),
@@ -428,6 +447,50 @@ export async function executeGoogleDriveBackup(
     localBackup: backendResult?.local_backup,
     stats: dump.stats,
   };
+}
+
+/**
+ * Direct browser download for .SQL database dump file
+ */
+export function downloadSqlDumpFile(customSql?: string, customFilename?: string): void {
+  try {
+    const dump = generateFullDatabaseDump();
+    const sql = customSql || dump.sqlString;
+    const filename = customFilename || `evon_lms_all_tables_dump_${dump.timestamp}.sql`;
+    const blob = new Blob([sql], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error("Failed to trigger SQL download:", e);
+  }
+}
+
+/**
+ * Direct browser download for .JSON database backup file
+ */
+export function downloadJsonDumpFile(customJson?: string, customFilename?: string): void {
+  try {
+    const dump = generateFullDatabaseDump();
+    const json = customJson || dump.jsonString;
+    const filename = customFilename || `evon_lms_db_backup_${dump.timestamp}.json`;
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error("Failed to trigger JSON download:", e);
+  }
 }
 
 /**

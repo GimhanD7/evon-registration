@@ -102,6 +102,8 @@ if ($method === 'POST') {
         $cleanPhone = '0' . substr($cleanPhone, 2);
     } elseif (str_starts_with($cleanPhone, '0094')) {
         $cleanPhone = '0' . substr($cleanPhone, 4);
+    } elseif (strlen($cleanPhone) === 9 && str_starts_with($cleanPhone, '7')) {
+        $cleanPhone = '0' . $cleanPhone;
     }
 
     $isSlMobile = preg_match('/^07[01245678]\d{7}$/', $cleanPhone);
@@ -117,7 +119,11 @@ if ($method === 'POST') {
     }
     $phone = $cleanPhone;
 
-    if (strlen($pass) < 4) {
+    if (empty($password)) {
+        $password = 'pass123';
+    }
+
+    if (strlen($password) < 4) {
         http_response_code(400);
         echo json_encode(["success" => false, "error" => "LMS Password must be at least 4 characters long."]);
         exit();

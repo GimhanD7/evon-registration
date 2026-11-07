@@ -189,12 +189,13 @@ VALUES ('security_pin', '1234')
 ON DUPLICATE KEY UPDATE `setting_key`=`setting_key`;
 
 -- ========================================================
--- Root Educator / Admin Account (Production Credentials)
+-- Root Educator / Admin & Sample Student Accounts
 -- ========================================================
 INSERT INTO `users` (`user_uid`, `full_name`, `phone`, `password`, `role`, `index_no`, `batch`, `school`, `parent_phone`, `avatar_url`, `enrolled_date`, `status`)
 VALUES
-('admin-01', 'Evon Aravinda (Lead Educator & Admin)', '0719998877', 'admin123', 'admin', NULL, 'All Batches', 'Main Faculty', NULL, '/images/educator.jpg', '2024-01-01', 'active')
-ON DUPLICATE KEY UPDATE `full_name`='Evon Aravinda (Lead Educator & Admin)';
+('admin-01', 'Evon Aravinda (Lead Educator & Admin)', '0719998877', 'admin123', 'admin', NULL, 'All Batches', 'Main Faculty', NULL, '/images/educator.jpg', '2024-01-01', 'active'),
+('std-001', 'Kasun Perera (Sample Student)', '0771234567', 'pass123', 'student', '53914864', '2026 O/L Speed Revision & Paper Class', 'Royal College, Colombo 07', '0777654321', '/images/top_student_rank1.jpg', '2026-01-15', 'active')
+ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`);
 
 -- Default Batches
 INSERT IGNORE INTO `batches` (`name`) VALUES

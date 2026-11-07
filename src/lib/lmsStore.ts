@@ -1878,62 +1878,503 @@ export function generateFullDatabaseDump(): {
   jsonString: string;
   sqlString: string;
   timestamp: string;
-  stats: { users: number; papers: number; quizzes: number; evaluations: number; batches: number };
+  stats: {
+    users: number;
+    batches: number;
+    papers: number;
+    paper_results: number;
+    quizzes: number;
+    quiz_questions: number;
+    quiz_attempts: number;
+    evaluations: number;
+    national_results: number;
+    app_settings: number;
+    activity_logs: number;
+    total_tables: number;
+  };
 } {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const users = getLmsUsers();
+  const batches = getLmsBatches();
   const papers = getLmsPapers();
   const quizzes = getLmsQuizzes();
   const evaluations = getLmsEvaluations();
-  const batches = getLmsBatches();
+
+  // Extract all paper results
+  const paperResults: PaperStudentResult[] = [];
+  const paperResultRecords: {
+    result_uid: string;
+    paper_uid: string;
+    rank_in_class: number;
+    student_name: string;
+    school: string;
+    index_no: string;
+    part1_score: number;
+    part2_score: number;
+    total_score: number;
+    grade: string;
+    achievement: string;
+    avatar_initials: string;
+  }[] = [];
+
+  papers.forEach((p) => {
+    if (Array.isArray(p.results)) {
+      p.results.forEach((r) => {
+        paperResults.push(r);
+        paperResultRecords.push({
+          result_uid: r.id || `res-${p.id}-${r.indexNo}`,
+          paper_uid: p.id,
+          rank_in_class: r.rank || 1,
+          student_name: r.name || "",
+          school: r.school || "",
+          index_no: r.indexNo || "",
+          part1_score: r.part1Score || 0,
+          part2_score: r.part2Score || 0,
+          total_score: r.totalScore || 0,
+          grade: r.grade || "A",
+          achievement: r.achievement || "",
+          avatar_initials: r.avatarInitials || "ST",
+        });
+      });
+    }
+  });
+
+  // Extract quiz questions
+  const quizQuestions: {
+    quiz_uid: string;
+    question_text: string;
+    options_json: string;
+    correct_answer: number;
+    explanation: string;
+  }[] = [];
+
+  quizzes.forEach((q) => {
+    if (Array.isArray(q.questions)) {
+      q.questions.forEach((qu) => {
+        quizQuestions.push({
+          quiz_uid: q.id,
+          question_text: qu.question,
+          options_json: JSON.stringify(qu.options || []),
+          correct_answer: qu.correctAnswer ?? 0,
+          explanation: qu.explanation || "",
+        });
+      });
+    }
+  });
+
+  // Extract quiz attempts
+  let quizAttempts: {
+    quiz_uid: string;
+    user_uid: string;
+    score: number;
+    total_marks: number;
+    attempted_at: string;
+  }[] = [];
+
+  if (isClient()) {
+    try {
+      const rawAttempts = localStorage.getItem(STORAGE_KEYS.QUIZ_ATTEMPTS);
+      if (rawAttempts) {
+        const parsed = JSON.parse(rawAttempts);
+        if (Array.isArray(parsed)) {
+          quizAttempts = parsed.map((a: Record<string, unknown>) => ({
+            quiz_uid: String(a.quizId || a.quiz_uid || ""),
+            user_uid: String(a.userId || a.user_uid || ""),
+            score: Number(a.score || 0),
+            total_marks: Number(a.totalMarks || a.total_marks || 100),
+            attempted_at: String(a.attemptedAt || a.attempted_at || new Date().toISOString()),
+          }));
+        }
+      }
+    } catch {}
+  }
+
+  // App Settings
+  const appSettings: { setting_key: string; setting_value: string }[] = [
+    { setting_key: "security_pin", setting_value: getSecurityPin() || "1234" },
+    { setting_key: "gdrive_backup_config", setting_value: JSON.stringify(getGoogleDriveBackupConfig()) },
+    { setting_key: "system_version", setting_value: "3.0-enterprise" },
+  ];
+
+  // Activity Logs
+  let activityLogs: {
+    log_uid: string;
+    user_id: string;
+    user_name: string;
+    user_role: string;
+    action: string;
+    category: string;
+    details: string;
+    status: string;
+    created_at: string;
+  }[] = [];
+
+  if (isClient()) {
+    try {
+      const rawLogs = localStorage.getItem("evon_lms_activity_logs");
+      if (rawLogs) {
+        const parsed = JSON.parse(rawLogs);
+        if (Array.isArray(parsed)) {
+          activityLogs = parsed.map((l: Record<string, unknown>) => ({
+            log_uid: String(l.id || l.log_uid || `log-${Date.now()}`),
+            user_id: String(l.userId || l.user_id || "system"),
+            user_name: String(l.userName || l.user_name || "System"),
+            user_role: String(l.userRole || l.user_role || "system"),
+            action: String(l.action || "Log event"),
+            category: String(l.category || "system"),
+            details: String(l.details || ""),
+            status: String(l.status || "info"),
+            created_at: String(l.timestamp || l.created_at || new Date().toISOString()),
+          }));
+        }
+      }
+    } catch {}
+  }
+
+  // National Results
+  const nationalResults = resultsData || [];
 
   const dumpObject = {
     system: "Evon Aravinda Commerce Education LMS",
     exportDate: new Date().toISOString(),
-    version: "2.5-enterprise",
+    version: "3.0-enterprise",
     database: "evon_lms",
     tables: {
       users,
-      papers,
-      quizzes,
-      evaluations,
       batches,
+      papers,
+      paper_results: paperResultRecords,
+      quizzes,
+      quiz_questions: quizQuestions,
+      quiz_attempts: quizAttempts,
+      evaluations,
+      national_results: nationalResults,
+      app_settings: appSettings,
+      activity_logs: activityLogs,
     },
   };
 
   const jsonString = JSON.stringify(dumpObject, null, 2);
 
-  // Generate complete MySQL SQL Dump script
+  // Helper for SQL string escaping
+  const esc = (val: unknown): string => {
+    if (val === null || val === undefined) return "NULL";
+    if (typeof val === "number") return String(val);
+    if (typeof val === "boolean") return val ? "1" : "0";
+    return `'${String(val).replace(/'/g, "''").replace(/\\/g, "\\\\")}'`;
+  };
+
+  // Generate complete MySQL SQL Dump script with ALL 11 tables and full DDL
   let sqlString = `-- ========================================================\n`;
-  sqlString += `-- Evon Aravinda Commerce Education LMS MySQL Dump\n`;
+  sqlString += `-- Evon Aravinda Commerce Education LMS\n`;
+  sqlString += `-- Complete MySQL Database Dump (ALL 11 TABLES)\n`;
   sqlString += `-- Exported on: ${new Date().toISOString()}\n`;
   sqlString += `-- ========================================================\n\n`;
-  sqlString += `CREATE DATABASE IF NOT EXISTS \`evon_lms\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE \`evon_lms\`;\n\n`;
+  sqlString += `SET FOREIGN_KEY_CHECKS = 0;\n`;
+  sqlString += `SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";\n`;
+  sqlString += `SET NAMES utf8mb4;\n\n`;
+  sqlString += `CREATE DATABASE IF NOT EXISTS \`evon_lms\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n`;
+  sqlString += `USE \`evon_lms\`;\n\n`;
 
-  // Users insert
+  // 1. Table: users
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`users\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`users\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`user_uid\` VARCHAR(64) NOT NULL UNIQUE,
+  \`full_name\` VARCHAR(150) NOT NULL,
+  \`phone\` VARCHAR(20) NOT NULL UNIQUE,
+  \`password\` VARCHAR(255) NOT NULL,
+  \`role\` ENUM('admin', 'student', 'superadmin') NOT NULL DEFAULT 'student',
+  \`index_no\` VARCHAR(50) DEFAULT NULL,
+  \`batch\` VARCHAR(150) DEFAULT '2026 O/L Speed Revision & Paper Class',
+  \`school\` VARCHAR(150) DEFAULT NULL,
+  \`parent_phone\` VARCHAR(20) DEFAULT NULL,
+  \`avatar_url\` VARCHAR(255) DEFAULT NULL,
+  \`enrolled_date\` VARCHAR(30) DEFAULT NULL,
+  \`status\` ENUM('active', 'inactive', 'pending') NOT NULL DEFAULT 'active',
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`phone\`),
+  INDEX (\`role\`),
+  INDEX (\`index_no\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
   if (users.length > 0) {
-    sqlString += `-- Table: users (${users.length} records)\n`;
     users.forEach((u) => {
-      const fn = (u.fullName || "").replace(/'/g, "''");
-      const ph = (u.phone || "").replace(/'/g, "''");
-      const role = u.role || "student";
-      const idx = (u.indexNo || "").replace(/'/g, "''");
-      const bt = (u.batch || "").replace(/'/g, "''");
-      const sc = (u.school || "").replace(/'/g, "''");
-      sqlString += `INSERT INTO \`users\` (\`user_uid\`, \`full_name\`, \`phone\`, \`role\`, \`index_no\`, \`batch\`, \`school\`) VALUES ('${u.id}', '${fn}', '${ph}', '${role}', '${idx}', '${bt}', '${sc}') ON DUPLICATE KEY UPDATE \`full_name\`='${fn}', \`batch\`='${bt}';\n`;
+      sqlString += `INSERT INTO \`users\` (\`user_uid\`, \`full_name\`, \`phone\`, \`password\`, \`role\`, \`index_no\`, \`batch\`, \`school\`, \`parent_phone\`, \`avatar_url\`, \`enrolled_date\`, \`status\`) VALUES (${esc(u.id)}, ${esc(u.fullName)}, ${esc(u.phone)}, ${esc(u.password || "pass123")}, ${esc(u.role || "student")}, ${esc(u.indexNo)}, ${esc(u.batch)}, ${esc(u.school)}, ${esc(u.parentPhone)}, ${esc(u.avatarUrl)}, ${esc(u.enrolledDate)}, ${esc(u.status || "active")}) ON DUPLICATE KEY UPDATE \`full_name\`=${esc(u.fullName)}, \`batch\`=${esc(u.batch)}, \`index_no\`=${esc(u.indexNo)};\n`;
     });
     sqlString += `\n`;
   }
 
-  // Batches insert
+  // 2. Table: batches
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`batches\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`batches\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`name\` VARCHAR(150) NOT NULL UNIQUE,
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
   if (batches.length > 0) {
-    sqlString += `-- Table: batches (${batches.length} records)\n`;
     batches.forEach((b) => {
-      const bn = b.replace(/'/g, "''");
-      sqlString += `INSERT IGNORE INTO \`batches\` (\`name\`) VALUES ('${bn}');\n`;
+      sqlString += `INSERT IGNORE INTO \`batches\` (\`name\`) VALUES (${esc(b)});\n`;
     });
     sqlString += `\n`;
   }
+
+  // 3. Table: papers
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`papers\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`papers\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`paper_uid\` VARCHAR(64) NOT NULL UNIQUE,
+  \`paper_number\` VARCHAR(50) NOT NULL,
+  \`paper_code\` VARCHAR(50) DEFAULT NULL,
+  \`title\` VARCHAR(255) NOT NULL,
+  \`batch\` VARCHAR(150) NOT NULL,
+  \`subject\` VARCHAR(150) DEFAULT 'Business & Accounting Studies',
+  \`term\` VARCHAR(100) DEFAULT 'Final Pre-Exam Assessment',
+  \`month\` VARCHAR(50) DEFAULT 'Monthly',
+  \`year\` INT DEFAULT 2026,
+  \`exam_date\` VARCHAR(50) DEFAULT '2026',
+  \`total_marks\` INT DEFAULT 100,
+  \`duration_minutes\` INT DEFAULT 120,
+  \`total_candidates\` INT DEFAULT 0,
+  \`highest_mark\` INT DEFAULT 100,
+  \`average_mark\` DECIMAL(5,2) DEFAULT 75.00,
+  \`pass_percentage\` DECIMAL(5,2) DEFAULT 95.00,
+  \`topics\` TEXT DEFAULT NULL,
+  \`topper_info\` TEXT DEFAULT NULL,
+  \`score_distribution\` TEXT DEFAULT NULL,
+  \`pdf_url\` VARCHAR(255) DEFAULT NULL,
+  \`marking_scheme_url\` VARCHAR(255) DEFAULT NULL,
+  \`status\` ENUM('published', 'upcoming', 'grading') NOT NULL DEFAULT 'published',
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`paper_uid\`),
+  INDEX (\`batch\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (papers.length > 0) {
+    papers.forEach((p) => {
+      const pAny = p as unknown as Record<string, unknown>;
+      const pCode = pAny.code || `P-${p.paperNumber}`;
+      const pTerm = pAny.term || "Monthly Assessment";
+      const pExamDate = pAny.date || `${p.year}-${p.month}`;
+      const pTotCand = Number(pAny.totalCandidates || (p.results ? p.results.length : 0));
+      const pHighest = Number(pAny.highestMark || 100);
+      const pAvg = Number(pAny.averageMark || 75);
+      const pPassPct = Number(pAny.passPercentage || 95);
+      const pTopics = JSON.stringify(pAny.topics || []);
+      const pTopper = pAny.topper ? JSON.stringify(pAny.topper) : null;
+      const pScoreDist = pAny.scoreDistribution ? JSON.stringify(pAny.scoreDistribution) : null;
+
+      sqlString += `INSERT INTO \`papers\` (\`paper_uid\`, \`paper_number\`, \`paper_code\`, \`title\`,\`batch\`, \`subject\`, \`term\`, \`month\`, \`year\`, \`exam_date\`, \`total_marks\`, \`duration_minutes\`, \`total_candidates\`, \`highest_mark\`, \`average_mark\`, \`pass_percentage\`, \`topics\`, \`topper_info\`, \`score_distribution\`, \`pdf_url\`, \`marking_scheme_url\`, \`status\`) VALUES (${esc(p.id)}, ${esc(p.paperNumber)}, ${esc(pCode)}, ${esc(p.title)}, ${esc(p.batch)}, ${esc(p.subject || "Business & Accounting Studies")}, ${esc(pTerm)}, ${esc(p.month)}, ${esc(p.year || 2026)}, ${esc(pExamDate)}, ${esc(p.totalMarks || 100)}, ${esc(p.durationMinutes || 120)}, ${esc(pTotCand)}, ${esc(pHighest)}, ${esc(pAvg)}, ${esc(pPassPct)}, ${esc(pTopics)}, ${esc(pTopper)}, ${esc(pScoreDist)}, ${esc(p.pdfUrl)}, ${esc(p.markingSchemeUrl)}, ${esc(p.status || "published")}) ON DUPLICATE KEY UPDATE \`title\`=${esc(p.title)}, \`batch\`=${esc(p.batch)};\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 4. Table: paper_results
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`paper_results\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`paper_results\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`result_uid\` VARCHAR(64) NOT NULL UNIQUE,
+  \`paper_uid\` VARCHAR(64) NOT NULL,
+  \`rank_in_class\` INT DEFAULT 1,
+  \`student_name\` VARCHAR(150) NOT NULL,
+  \`school\` VARCHAR(150) DEFAULT NULL,
+  \`index_no\` VARCHAR(50) NOT NULL,
+  \`part1_score\` INT DEFAULT 0,
+  \`part2_score\` INT DEFAULT 0,
+  \`total_score\` INT DEFAULT 0,
+  \`grade\` VARCHAR(10) DEFAULT 'A',
+  \`achievement\` VARCHAR(255) DEFAULT NULL,
+  \`avatar_initials\` VARCHAR(10) DEFAULT 'ST',
+  \`avatar_image\` VARCHAR(255) DEFAULT NULL,
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`paper_uid\`),
+  INDEX (\`index_no\`),
+  INDEX (\`total_score\`),
+  INDEX (\`rank_in_class\`),
+  UNIQUE KEY \`uq_paper_index\` (\`paper_uid\`, \`index_no\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (paperResultRecords.length > 0) {
+    paperResultRecords.forEach((r) => {
+      sqlString += `INSERT INTO \`paper_results\` (\`result_uid\`, \`paper_uid\`, \`rank_in_class\`, \`student_name\`, \`school\`, \`index_no\`, \`part1_score\`, \`part2_score\`, \`total_score\`, \`grade\`, \`achievement\`, \`avatar_initials\`) VALUES (${esc(r.result_uid)}, ${esc(r.paper_uid)}, ${esc(r.rank_in_class)}, ${esc(r.student_name)}, ${esc(r.school)}, ${esc(r.index_no)}, ${esc(r.part1_score)}, ${esc(r.part2_score)}, ${esc(r.total_score)}, ${esc(r.grade)}, ${esc(r.achievement)}, ${esc(r.avatar_initials)}) ON DUPLICATE KEY UPDATE \`total_score\`=${esc(r.total_score)}, \`grade\`=${esc(r.grade)};\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 5. Table: quizzes
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`quizzes\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`quizzes\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`quiz_uid\` VARCHAR(64) NOT NULL UNIQUE,
+  \`title\` VARCHAR(255) NOT NULL,
+  \`subject\` VARCHAR(120) DEFAULT 'Business Studies',
+  \`batch\` VARCHAR(120) DEFAULT '2026/2027 O/L Commerce',
+  \`duration_minutes\` INT DEFAULT 15,
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (quizzes.length > 0) {
+    quizzes.forEach((q) => {
+      sqlString += `INSERT INTO \`quizzes\` (\`quiz_uid\`, \`title\`, \`subject\`, \`batch\`, \`duration_minutes\`) VALUES (${esc(q.id)}, ${esc(q.title)}, ${esc(q.subject || "Business Studies")}, ${esc(q.batch)}, ${esc(q.durationMinutes || 15)}) ON DUPLICATE KEY UPDATE \`title\`=${esc(q.title)};\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 6. Table: quiz_questions
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`quiz_questions\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`quiz_questions\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`quiz_uid\` VARCHAR(64) NOT NULL,
+  \`question_text\` TEXT NOT NULL,
+  \`options_json\` TEXT NOT NULL,
+  \`correct_answer\` TINYINT NOT NULL,
+  \`explanation\` TEXT DEFAULT NULL,
+  INDEX (\`quiz_uid\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (quizQuestions.length > 0) {
+    quizQuestions.forEach((qu) => {
+      sqlString += `INSERT INTO \`quiz_questions\` (\`quiz_uid\`, \`question_text\`, \`options_json\`, \`correct_answer\`, \`explanation\`) VALUES (${esc(qu.quiz_uid)}, ${esc(qu.question_text)}, ${esc(qu.options_json)}, ${esc(qu.correct_answer)}, ${esc(qu.explanation)});\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 7. Table: quiz_attempts
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`quiz_attempts\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`quiz_attempts\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`quiz_uid\` VARCHAR(64) NOT NULL,
+  \`user_uid\` VARCHAR(64) NOT NULL,
+  \`score\` INT NOT NULL,
+  \`total_marks\` INT NOT NULL DEFAULT 100,
+  \`attempted_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`quiz_uid\`),
+  INDEX (\`user_uid\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (quizAttempts.length > 0) {
+    quizAttempts.forEach((qa) => {
+      sqlString += `INSERT INTO \`quiz_attempts\` (\`quiz_uid\`, \`user_uid\`, \`score\`, \`total_marks\`) VALUES (${esc(qa.quiz_uid)}, ${esc(qa.user_uid)}, ${esc(qa.score)}, ${esc(qa.total_marks)});\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 8. Table: evaluations
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`evaluations\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`evaluations\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`evaluation_uid\` VARCHAR(64) NOT NULL UNIQUE,
+  \`student_id\` VARCHAR(64) NOT NULL,
+  \`paper_or_term\` VARCHAR(150) NOT NULL,
+  \`evaluation_date\` DATE NOT NULL,
+  \`attendance_rate\` INT DEFAULT 95,
+  \`strengths\` TEXT DEFAULT NULL,
+  \`weaknesses\` TEXT DEFAULT NULL,
+  \`teacher_remarks\` TEXT NOT NULL,
+  \`recommended_action\` TEXT NOT NULL,
+  \`performance_grade\` VARCHAR(50) DEFAULT 'Outstanding',
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`student_id\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (evaluations.length > 0) {
+    evaluations.forEach((e) => {
+      sqlString += `INSERT INTO \`evaluations\` (\`evaluation_uid\`, \`student_id\`, \`paper_or_term\`, \`evaluation_date\`, \`attendance_rate\`, \`strengths\`, \`weaknesses\`, \`teacher_remarks\`, \`recommended_action\`, \`performance_grade\`) VALUES (${esc(e.id)}, ${esc(e.studentId)}, ${esc(e.paperOrTerm)}, ${esc(e.date || "2026-01-01")}, ${esc(e.attendanceRate || 95)}, ${esc(JSON.stringify(e.strengths || []))}, ${esc(JSON.stringify(e.weaknesses || []))}, ${esc(e.teacherRemarks)}, ${esc(e.recommendedAction)}, ${esc(e.performanceGrade || "Outstanding")}) ON DUPLICATE KEY UPDATE \`teacher_remarks\`=${esc(e.teacherRemarks)};\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 9. Table: national_results
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`national_results\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`national_results\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`student_name\` VARCHAR(150) NOT NULL,
+  \`school\` VARCHAR(150) NOT NULL,
+  \`index_no\` VARCHAR(50) NOT NULL UNIQUE,
+  \`year\` INT DEFAULT 2025,
+  \`grade_badge\` VARCHAR(10) NOT NULL,
+  \`letter_grade\` VARCHAR(5) NOT NULL,
+  \`is_top_champion\` TINYINT(1) DEFAULT 0,
+  \`quote\` TEXT DEFAULT NULL,
+  \`avatar_image\` VARCHAR(255) DEFAULT NULL,
+  INDEX (\`index_no\`),
+  INDEX (\`year\`),
+  INDEX (\`grade_badge\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (nationalResults.length > 0) {
+    nationalResults.forEach((nr) => {
+      sqlString += `INSERT INTO \`national_results\` (\`student_name\`, \`school\`, \`index_no\`, \`year\`, \`grade_badge\`, \`letter_grade\`, \`is_top_champion\`, \`quote\`, \`avatar_image\`) VALUES (${esc(nr.name)}, ${esc(nr.school)}, ${esc(nr.indexNo)}, ${esc(nr.year || 2025)}, ${esc(nr.gradeBadge)}, ${esc(nr.letterGrade)}, ${esc(nr.isTopChampion ? 1 : 0)}, ${esc(nr.quote)}, ${esc(nr.avatarImage)}) ON DUPLICATE KEY UPDATE \`student_name\`=${esc(nr.name)};\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // 10. Table: app_settings
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`app_settings\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`app_settings\` (
+  \`setting_key\` VARCHAR(64) PRIMARY KEY,
+  \`setting_value\` TEXT NOT NULL,
+  \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  appSettings.forEach((s) => {
+    sqlString += `INSERT INTO \`app_settings\` (\`setting_key\`, \`setting_value\`) VALUES (${esc(s.setting_key)}, ${esc(s.setting_value)}) ON DUPLICATE KEY UPDATE \`setting_value\`=${esc(s.setting_value)};\n`;
+  });
+  sqlString += `\n`;
+
+  // 11. Table: activity_logs
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `-- Table structure and data for table \`activity_logs\`\n`;
+  sqlString += `-- --------------------------------------------------------\n`;
+  sqlString += `CREATE TABLE IF NOT EXISTS \`activity_logs\` (
+  \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+  \`log_uid\` VARCHAR(64) NOT NULL UNIQUE,
+  \`user_id\` VARCHAR(64) DEFAULT 'guest',
+  \`user_name\` VARCHAR(150) NOT NULL DEFAULT 'Anonymous User',
+  \`user_role\` VARCHAR(50) NOT NULL DEFAULT 'student',
+  \`action\` VARCHAR(255) NOT NULL,
+  \`category\` VARCHAR(50) NOT NULL DEFAULT 'system',
+  \`details\` TEXT DEFAULT NULL,
+  \`ip_address\` VARCHAR(100) DEFAULT NULL,
+  \`device\` VARCHAR(255) DEFAULT NULL,
+  \`status\` ENUM('success', 'warning', 'info') NOT NULL DEFAULT 'info',
+  \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (\`user_id\`),
+  INDEX (\`category\`),
+  INDEX (\`created_at\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n`;
+
+  if (activityLogs.length > 0) {
+    activityLogs.forEach((l) => {
+      sqlString += `INSERT INTO \`activity_logs\` (\`log_uid\`, \`user_id\`, \`user_name\`, \`user_role\`, \`action\`, \`category\`, \`details\`, \`status\`) VALUES (${esc(l.log_uid)}, ${esc(l.user_id)}, ${esc(l.user_name)}, ${esc(l.user_role)}, ${esc(l.action)}, ${esc(l.category)}, ${esc(l.details)}, ${esc(l.status)});\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  sqlString += `SET FOREIGN_KEY_CHECKS = 1;\n`;
+  sqlString += `-- End of dump\n`;
 
   return {
     jsonString,
@@ -1941,10 +2382,17 @@ export function generateFullDatabaseDump(): {
     timestamp,
     stats: {
       users: users.length,
-      papers: papers.length,
-      quizzes: quizzes.length,
-      evaluations: evaluations.length,
       batches: batches.length,
+      papers: papers.length,
+      paper_results: paperResultRecords.length,
+      quizzes: quizzes.length,
+      quiz_questions: quizQuestions.length,
+      quiz_attempts: quizAttempts.length,
+      evaluations: evaluations.length,
+      national_results: nationalResults.length,
+      app_settings: appSettings.length,
+      activity_logs: activityLogs.length,
+      total_tables: 11,
     },
   };
 }

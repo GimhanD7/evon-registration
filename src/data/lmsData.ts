@@ -91,6 +91,20 @@ export const initialLmsUsers: LMSUser[] = [
     enrolledDate: "2024-01-01",
     status: "active",
   },
+  {
+    id: "std-001",
+    fullName: "Kasun Perera (Sample Student)",
+    phone: "0771234567",
+    password: "pass123",
+    role: "student",
+    indexNo: "53914864",
+    batch: "2026 O/L Speed Revision & Paper Class",
+    school: "Royal College, Colombo 07",
+    parentPhone: "0777654321",
+    avatarUrl: "/images/top_student_rank1.jpg",
+    enrolledDate: "2026-01-15",
+    status: "active",
+  },
 ];
 
 /**
