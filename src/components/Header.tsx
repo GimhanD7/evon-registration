@@ -17,8 +17,8 @@ import {
   ChevronRight,
   ShieldCheck,
   LayoutDashboard,
+  Award,
   // FileText,
-  HelpCircle,
   User as UserIcon,
 } from "lucide-react";
 import StudentLoginModal from "@/components/StudentLoginModal";
@@ -393,25 +393,30 @@ export default function Header({ onOpenJoin, onOpenLogin }: HeaderProps) {
         className="fixed bottom-0 left-0 right-0 z-[100] w-full max-w-full border-t border-[#cddce5] bg-white/98 shadow-[0_-8px_30px_rgba(16,44,69,0.12)] backdrop-blur-2xl transition-all md:hidden pb-[max(8px,env(safe-area-inset-bottom))] pt-1.5 px-1 rounded-t-2xl sm:rounded-t-3xl"
       >
         {currentUser && currentUser.role === "student" ? (
-          /* Student Logged In: Dynamic LMS Mobile Nav Bar (Matches LMS Functions) */
-          <div className="mx-auto grid w-full max-w-[480px] grid-cols-6 items-end gap-0.5">
+          /* Student Logged In: Dynamic LMS Mobile Nav Bar (Matches LMS Functions & Image 1 Design) */
+          <div className="mx-auto grid w-full max-w-[480px] grid-cols-5 items-end">
             {/* 1. Dashboard Overview */}
             <Link
               href="/lms/student?tab=overview"
-              className={`group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 ${pathname === "/lms/student"
+              className={`group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 ${
+                pathname === "/lms/student"
                   ? "text-[#007fb8] font-black"
-                  : "text-[#60768a] font-semibold hover:text-[#102c45]"
-                }`}
+                  : "text-[#60768a] font-medium hover:text-[#102c45]"
+              }`}
             >
               <span
-                className={`flex size-8 items-center justify-center rounded-xl transition-all ${pathname === "/lms/student"
-                    ? "bg-[#007fb8] text-white shadow-sm shadow-[#007fb8]/35 scale-105"
-                    : "group-hover:bg-[#f1f5f9] text-[#60768a]"
-                  }`}
+                className={`flex size-8 items-center justify-center rounded-full transition-all ${
+                  pathname === "/lms/student"
+                    ? "bg-[#e0f2fe] scale-105"
+                    : "group-hover:bg-[#f1f5f9]"
+                }`}
               >
-                <LayoutDashboard size={17} strokeWidth={pathname === "/lms/student" ? 2.4 : 2} />
+                <LayoutDashboard
+                  size={18}
+                  strokeWidth={pathname === "/lms/student" ? 2.5 : 2}
+                />
               </span>
-              <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
+              <span className="mt-0.5 w-full truncate text-center text-[9px] sm:text-[10px] leading-tight tracking-tight">
                 Overview
               </span>
               {pathname === "/lms/student" && (
@@ -419,60 +424,28 @@ export default function Header({ onOpenJoin, onOpenLogin }: HeaderProps) {
               )}
             </Link>
 
-            {/* 2. Model Papers (Commented for now) */}
-            {/* <Link
-              href="/lms/student?tab=papers"
-              className={`group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 ${pathname === "/paper-class"
+            {/* 2. Exam Results */}
+            <Link
+              href="/lms/student?tab=results"
+              className={`group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 ${
+                pathname === "/results"
                   ? "text-[#007fb8] font-black"
-                  : "text-[#60768a] font-semibold hover:text-[#102c45]"
-                }`}
+                  : "text-[#60768a] font-medium hover:text-[#102c45]"
+              }`}
             >
               <span
-                className={`flex size-8 items-center justify-center rounded-xl transition-all ${pathname === "/paper-class"
-                    ? "bg-[#007fb8] text-white shadow-sm shadow-[#007fb8]/35 scale-105"
-                    : "group-hover:bg-[#f1f5f9] text-[#60768a]"
-                  }`}
-              >
-                <FileText size={17} strokeWidth={pathname === "/paper-class" ? 2.4 : 2} />
-              </span>
-              <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
-                Papers
-              </span>
-              {pathname === "/paper-class" && (
-                <span className="mt-0.5 size-1 rounded-full bg-[#007fb8]" />
-              )}
-            </Link> */}
-
-            {/* 3. Interactive Quizzes */}
-            <Link
-              href="/lms/student?tab=quizzes"
-              className="group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 text-[#60768a] font-semibold hover:text-[#102c45]"
-            >
-              <span className="flex size-8 items-center justify-center rounded-xl transition-all group-hover:bg-[#f1f5f9] text-[#60768a]">
-                <HelpCircle size={17} strokeWidth={2} />
-              </span>
-              <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
-                Quizzes
-              </span>
-            </Link>
-
-            {/* 4. Exam Results */}
-            <Link
-              href="/results"
-              className={`group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 ${pathname === "/results"
-                  ? "text-[#007fb8] font-black"
-                  : "text-[#60768a] font-semibold hover:text-[#102c45]"
+                className={`flex size-8 items-center justify-center rounded-full transition-all ${
+                  pathname === "/results"
+                    ? "bg-[#e0f2fe] scale-105"
+                    : "group-hover:bg-[#f1f5f9]"
                 }`}
-            >
-              <span
-                className={`flex size-8 items-center justify-center rounded-xl transition-all ${pathname === "/results"
-                    ? "bg-[#007fb8] text-white shadow-sm shadow-[#007fb8]/35 scale-105"
-                    : "group-hover:bg-[#f1f5f9] text-[#60768a]"
-                  }`}
               >
-                <Trophy size={17} strokeWidth={pathname === "/results" ? 2.4 : 2} />
+                <Award
+                  size={18}
+                  strokeWidth={pathname === "/results" ? 2.5 : 2}
+                />
               </span>
-              <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
+              <span className="mt-0.5 w-full truncate text-center text-[9px] sm:text-[10px] leading-tight tracking-tight">
                 Results
               </span>
               {pathname === "/results" && (
@@ -480,28 +453,53 @@ export default function Header({ onOpenJoin, onOpenLogin }: HeaderProps) {
               )}
             </Link>
 
-            {/* 5. Leaderboard */}
+            {/* 3. Hero Center Button: Interactive Quizzes */}
+            <div className="relative -mt-4 sm:-mt-5 flex min-w-0 max-w-full flex-col items-center justify-center">
+              <Link
+                href="/lms/student?tab=quizzes"
+                aria-label="Interactive Quizzes"
+                className="group flex w-full min-w-0 flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform"
+              >
+                <span className="relative flex size-10 sm:size-11 items-center justify-center rounded-full border-2 border-white bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] text-white shadow-[0_8px_20px_-3px_rgba(0,127,184,0.55)] transition-transform group-hover:scale-105">
+                  <GraduationCap
+                    size={20}
+                    strokeWidth={2.3}
+                    className="text-[#0ac9e8] transition-transform group-hover:rotate-12"
+                  />
+                  {/* Glowing Green Notification Badge */}
+                  <span className="absolute -top-0.5 -right-0.5 flex size-2.5">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#38d995] opacity-75" />
+                    <span className="relative inline-flex size-2.5 rounded-full bg-[#38d995]" />
+                  </span>
+                </span>
+                <span className="mt-1 w-full truncate text-center text-[9px] sm:text-[10px] font-black tracking-tight text-[#102c45]">
+                  Quizzes
+                </span>
+              </Link>
+            </div>
+
+            {/* 4. Leaderboard */}
             <Link
               href="/lms/student?tab=evaluation"
-              className="group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 text-[#60768a] font-semibold hover:text-[#102c45]"
+              className="group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 text-[#60768a] font-medium hover:text-[#102c45]"
             >
-              <span className="flex size-8 items-center justify-center rounded-xl transition-all group-hover:bg-[#f1f5f9] text-[#60768a]">
-                <Trophy size={17} strokeWidth={2} />
+              <span className="flex size-8 items-center justify-center rounded-full transition-all group-hover:bg-[#f1f5f9]">
+                <Trophy size={18} strokeWidth={2} />
               </span>
-              <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
+              <span className="mt-0.5 w-full truncate text-center text-[9px] sm:text-[10px] leading-tight tracking-tight">
                 Leaderboard
               </span>
             </Link>
 
-            {/* 6. My Profile */}
+            {/* 5. My Profile */}
             <Link
               href="/lms/student?tab=profile"
-              className="group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 text-[#60768a] font-semibold hover:text-[#102c45]"
+              className="group relative flex min-w-0 max-w-full flex-col items-center justify-center py-0.5 transition-all active:scale-95 text-[#60768a] font-medium hover:text-[#102c45]"
             >
-              <span className="flex size-8 items-center justify-center rounded-xl transition-all group-hover:bg-[#f1f5f9] text-[#60768a]">
-                <UserIcon size={17} strokeWidth={2} />
+              <span className="flex size-8 items-center justify-center rounded-full transition-all group-hover:bg-[#f1f5f9]">
+                <UserIcon size={18} strokeWidth={2} />
               </span>
-              <span className="mt-1 w-full truncate text-center text-[9px] leading-tight tracking-tight">
+              <span className="mt-0.5 w-full truncate text-center text-[9px] sm:text-[10px] leading-tight tracking-tight">
                 Profile
               </span>
             </Link>

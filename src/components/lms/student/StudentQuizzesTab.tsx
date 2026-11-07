@@ -6,11 +6,12 @@ import {
   Clock,
   BookOpen,
   ArrowRight,
-  RotateCcw,
   Flame,
   CheckCircle2,
   Sparkles,
   Search,
+  Lock,
+  Shuffle,
 } from "lucide-react";
 import { LMSQuiz } from "@/data/lmsData";
 import QuizPlayer from "@/components/lms/student/QuizPlayer";
@@ -184,10 +185,15 @@ export default function StudentQuizzesTab({
                 className="rounded-3xl border border-[#cddce5] bg-white p-6 shadow-xs flex flex-col justify-between transition-all hover:shadow-md hover:-translate-y-0.5 space-y-4"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="rounded-full bg-[#e0f2fe] px-2.5 py-0.5 text-[10px] font-black text-[#007fb8]">
-                      {q.subject}
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="rounded-full bg-[#e0f2fe] px-2.5 py-0.5 text-[10px] font-black text-[#007fb8]">
+                        {q.subject}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#f1f5f9] border border-[#e2e8f0] px-2 py-0.5 text-[9.5px] font-bold text-[#475569]">
+                        <Shuffle size={10} className="text-[#007fb8]" /> Shuffled
+                      </span>
+                    </div>
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7] border border-[#f59e0b]/40 px-2.5 py-0.5 text-[10px] font-black text-[#92400e]">
                       <Flame size={12} className="text-[#f59e0b]" /> +100 Points XP
                     </span>
@@ -196,7 +202,7 @@ export default function StudentQuizzesTab({
                   <h4 className="text-base sm:text-lg font-black text-[#102c45] mt-2">
                     {q.title}
                   </h4>
-                  <p className="text-xs text-[#60768a] mt-1 flex items-center gap-3">
+                  <p className="text-xs text-[#60768a] mt-1 flex flex-wrap items-center gap-3">
                     <span className="flex items-center gap-1">
                       <BookOpen size={13} className="text-[#007fb8]" />
                       {q.questions.length} Questions
@@ -205,19 +211,22 @@ export default function StudentQuizzesTab({
                       <Clock size={13} className="text-[#159366]" />
                       {q.durationMinutes} Minutes Limit
                     </span>
+                    <span className="flex items-center gap-1 text-[#d97706] font-bold">
+                      <Lock size={12} /> 1 Attempt Only
+                    </span>
                   </p>
                 </div>
 
                 {/* Bottom Row */}
-                <div className="mt-4 pt-4 border-t border-[#cddce5]/60 flex items-center justify-between">
+                <div className="mt-4 pt-4 border-t border-[#cddce5]/60 flex items-center justify-between gap-2">
                   <div>
                     {isCompleted ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f7f2] border border-[#38d995]/50 px-3 py-1 text-xs font-black text-[#159366]">
-                        <CheckCircle2 size={14} /> Completed &bull; {q.score}%
+                        <CheckCircle2 size={14} /> Score: {q.score}% &bull; Locked
                       </span>
                     ) : (
-                      <span className="rounded-full bg-[#edf2f3] px-3 py-1 text-xs font-bold text-[#60768a]">
-                        Ready to Start
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#edf2f3] px-3 py-1 text-xs font-bold text-[#60768a]">
+                        <Lock size={12} className="text-[#94a3b8]" /> 1 Attempt Left
                       </span>
                     )}
                   </div>
@@ -225,15 +234,15 @@ export default function StudentQuizzesTab({
                   <button
                     type="button"
                     onClick={() => setActiveQuiz(q)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-5 py-2.5 text-xs font-black uppercase text-white shadow-md shadow-[#007fb8]/25 hover:scale-102 active:scale-95 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-4 sm:px-5 py-2.5 text-xs font-black uppercase text-white shadow-md shadow-[#007fb8]/25 hover:scale-102 active:scale-95 transition-all cursor-pointer"
                   >
                     {isCompleted ? (
                       <>
-                        <RotateCcw size={14} /> Retake / Review
+                        <BookOpen size={14} /> Review Answers
                       </>
                     ) : (
                       <>
-                        Start Quiz <ArrowRight size={14} />
+                        Start Shuffled Quiz <ArrowRight size={14} />
                       </>
                     )}
                   </button>

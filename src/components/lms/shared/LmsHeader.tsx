@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   LogOut,
   Menu,
+  Lock,
 } from "lucide-react";
 import { LMSUser } from "@/data/lmsData";
 
@@ -17,6 +18,7 @@ interface LmsHeaderProps {
   role: "admin" | "student";
   onToggleMobileMenu: () => void;
   onLogout: () => void;
+  onLockConsole?: () => void;
 }
 
 export default function LmsHeader({
@@ -25,6 +27,7 @@ export default function LmsHeader({
   role,
   onToggleMobileMenu,
   onLogout,
+  onLockConsole,
 }: LmsHeaderProps) {
   const isAdmin = role === "admin";
 
@@ -129,6 +132,18 @@ export default function LmsHeader({
           >
             <Menu size={18} />
           </button>
+
+          {/* Lock Console Button (Admin only) */}
+          {isAdmin && onLockConsole && (
+            <button
+              type="button"
+              onClick={onLockConsole}
+              title="Lock Admin Console Panel"
+              className="flex size-9 sm:size-8 items-center justify-center rounded-xl sm:rounded-full border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer"
+            >
+              <Lock size={15} />
+            </button>
+          )}
 
           {/* Logout Button */}
           <button

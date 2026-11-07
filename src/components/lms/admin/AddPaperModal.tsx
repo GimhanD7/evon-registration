@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, FilePlus } from "lucide-react";
 import { LMSPaper } from "@/data/lmsData";
+import { useLmsBatches, COMMERCE_SUBJECT } from "@/lib/lmsStore";
 
 interface AddPaperModalProps {
   isOpen: boolean;
@@ -17,10 +18,11 @@ export default function AddPaperModal({
   nextPaperNumber,
   onSuccess,
 }: AddPaperModalProps) {
+  const { batches: dbBatches } = useLmsBatches();
   const [title, setTitle] = useState("");
   const [month, setMonth] = useState("May");
   const [marks, setMarks] = useState(100);
-  const [batch] = useState("2026 O/L Speed Revision & Paper Class");
+  const [batch, setBatch] = useState(dbBatches[0] || "2026/2027 O/L Commerce");
 
   if (!isOpen) return null;
 
@@ -32,7 +34,7 @@ export default function AddPaperModal({
       paperNumber: nextPaperNumber,
       title: title.trim(),
       batch,
-      subject: "Business & Accounting Studies",
+      subject: COMMERCE_SUBJECT,
       month,
       year: 2026,
       totalMarks: Number(marks) || 100,
@@ -117,13 +119,18 @@ export default function AddPaperModal({
           </div>
 
           <div>
-            <label className="block font-bold text-[#102c45] mb-1">Target Batch</label>
-            <input
-              type="text"
-              readOnly
+            <label className="block font-bold text-[#102c45] mb-1">Target Commerce Batch</label>
+            <select
               value={batch}
-              className="w-full rounded-2xl border border-[#cddce5] bg-[#edf2f3]/30 py-2.5 px-3 font-bold text-[#60768a] cursor-not-allowed"
-            />
+              onChange={(e) => setBatch(e.target.value)}
+              className="w-full rounded-2xl border border-[#cddce5] bg-[#edf2f3]/50 py-2.5 px-3 font-bold text-[#102c45] focus:bg-white focus:border-[#007fb8] focus:outline-none cursor-pointer"
+            >
+              {dbBatches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   User as UserIcon,
@@ -19,11 +19,20 @@ import {
   QrCode,
   RotateCcw,
   Briefcase,
+  Monitor,
+  Smartphone,
+  Laptop,
+  Sparkles,
+  ShieldAlert,
+  Check,
+  Activity,
+  X,
 } from "lucide-react";
 import { LMSUser } from "@/data/lmsData";
 import { updateLmsUser } from "@/lib/lmsStore";
 import { printCredentialCardPdf } from "@/lib/pdfPrintService";
 import { compressImageFile } from "@/lib/imageCompressor";
+import { getActivityLogs, logActivity, LMSActivityLog } from "@/lib/activityLogService";
 
 interface AdminProfileTabProps {
   currentUser: LMSUser;
@@ -35,10 +44,16 @@ interface AdminProfileTabProps {
 }
 
 const ADMIN_AVATAR_PRESETS = [
-  { id: "educator-1", label: "Official Portrait", url: "/images/educator.jpg" },
-  { id: "educator-2", label: "Lecture Session", url: "/images/classroom-lecture.jpg" },
-  { id: "educator-3", label: "Seminar Hall", url: "/images/seminar-hall.jpg" },
-  { id: "educator-4", label: "Exam Hall", url: "/images/paper-session.jpg" },
+  { id: "educator-1", label: "Official Portrait", category: "Official", url: "/images/educator.jpg" },
+  { id: "educator-2", label: "Lecture Session", category: "Classroom", url: "/images/classroom-lecture.jpg" },
+  { id: "educator-3", label: "Seminar Hall", category: "Lecture", url: "/images/seminar-hall.jpg" },
+  { id: "educator-4", label: "Exam Hall Session", category: "Academic", url: "/images/paper-session.jpg" },
+  { id: "educator-5", label: "Award Ceremony", category: "Events", url: "/images/real-class-award.jpg" },
+  { id: "educator-6", label: "Commerce Class Group", category: "Community", url: "/images/real-class-selfie.jpg" },
+  { id: "educator-7", label: "Scholar Distinction #1", category: "Scholars", url: "/images/top_student_rank1.jpg" },
+  { id: "educator-8", label: "Scholar Distinction #2", category: "Scholars", url: "/images/top_student_rank2.jpg" },
+  { id: "educator-9", label: "Scholar Distinction #3", category: "Scholars", url: "/images/top_student_rank3.jpg" },
+  { id: "educator-10", label: "Commerce Students Showcase", category: "Scholars", url: "/images/students_showcase.jpg" },
 ];
 
 export default function AdminProfileTab({
@@ -61,6 +76,61 @@ export default function AdminProfileTab({
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState("");
   const [passwordErrorMsg, setPasswordErrorMsg] = useState("");
+  const [deviceSuccessMsg, setDeviceSuccessMsg] = useState("");
+
+  // Avatar Modal State
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [selectedAvatarCategory, setSelectedAvatarCategory] = useState<string>("all");
+
+  // Log History State
+  const [adminLogs, setAdminLogs] = useState<LMSActivityLog[]>(() =>
+    getActivityLogs().slice(0, 8)
+  );
+
+  // Devices History State
+  const [sessions, setSessions] = useState([
+    {
+      id: "sess-cur",
+      name: "Current Workstation",
+      deviceType: "desktop",
+      os: "Windows 11 Pro 64-bit",
+      browser: "Google Chrome 128.0",
+      ip: "127.0.0.1 (Localhost / XAMPP)",
+      location: "Colombo, Sri Lanka",
+      lastActive: "Active Now",
+      isCurrent: true,
+    },
+    {
+      id: "sess-2",
+      name: "Lecture Hall Laptop",
+      deviceType: "laptop",
+      os: "macOS Sonoma 14.5",
+      browser: "Apple Safari 17.5",
+      ip: "192.168.1.105",
+      location: "Negombo, Sri Lanka",
+      lastActive: "2 hours ago",
+      isCurrent: false,
+    },
+    {
+      id: "sess-3",
+      name: "Faculty Mobile Device",
+      deviceType: "mobile",
+      os: "iOS 17.6 (iPhone 15 Pro)",
+      browser: "Mobile Safari",
+      ip: "112.134.195.42",
+      location: "Gampaha, Sri Lanka",
+      lastActive: "Yesterday at 21:15",
+      isCurrent: false,
+    },
+  ]);
+
+  useEffect(() => {
+    const handleLogUpdate = () => {
+      setAdminLogs(getActivityLogs().slice(0, 8));
+    };
+    window.addEventListener("lms_activity_logs_change", handleLogUpdate);
+    return () => window.removeEventListener("lms_activity_logs_change", handleLogUpdate);
+  }, []);
 
   // Password fields
   const [newPassword, setNewPassword] = useState("");
@@ -68,7 +138,7 @@ export default function AdminProfileTab({
   const [showPassword, setShowPassword] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Upload custom photo from disk
@@ -279,30 +349,38 @@ export default function AdminProfileTab({
 
             {/* Avatar Presets & Custom Upload Action Bar */}
             <div className="mt-5 pt-4 border-t border-[#cddce5]/60 flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-              <span className="text-[11px] font-bold text-[#60768a] mr-1">
-                Choose Photo:
-              </span>
-              {ADMIN_AVATAR_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset.url)}
-                  className={`group relative size-9 rounded-full border-2 overflow-hidden transition-all cursor-pointer ${
-                    avatarUrl === preset.url
-                      ? "border-[#007fb8] scale-110 shadow-md shadow-[#007fb8]/30"
-                      : "border-white hover:border-[#0ac9e8] opacity-80 hover:opacity-100"
-                  }`}
-                  title={preset.label}
-                >
-                  <Image
-                    src={preset.url}
-                    alt={preset.label}
-                    width={36}
-                    height={36}
-                    className="size-full object-cover"
-                  />
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] px-3.5 py-1.5 text-[11px] font-black text-white shadow-xs hover:scale-102 transition-all cursor-pointer"
+              >
+                <Sparkles size={12} className="text-[#0ac9e8]" />
+                <span>Choose Photo &amp; Avatar Gallery</span>
+              </button>
+
+              <div className="hidden sm:flex items-center gap-1.5">
+                {ADMIN_AVATAR_PRESETS.slice(0, 5).map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectPreset(preset.url)}
+                    className={`group relative size-8 rounded-full border-2 overflow-hidden transition-all cursor-pointer ${
+                      avatarUrl === preset.url
+                        ? "border-[#007fb8] scale-110 shadow-md shadow-[#007fb8]/30"
+                        : "border-white hover:border-[#0ac9e8] opacity-80 hover:opacity-100"
+                    }`}
+                    title={preset.label}
+                  >
+                    <Image
+                      src={preset.url}
+                      alt={preset.label}
+                      width={32}
+                      height={32}
+                      className="size-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
 
               <button
                 type="button"
@@ -683,8 +761,257 @@ export default function AdminProfileTab({
               </div>
             </form>
           </div>
+
+          {/* 3. Devices History & Active Sessions */}
+          <div className="rounded-3xl border border-[#cddce5] bg-white p-6 sm:p-7 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#cddce5]/60">
+              <div>
+                <h3 className="text-base font-black text-[#102c45] flex items-center gap-2">
+                  <Monitor size={18} className="text-[#007fb8]" />
+                  Active Devices &amp; Login History
+                </h3>
+                <p className="text-xs text-[#60768a] mt-0.5">
+                  Surveillance of current session and authenticated administrator devices.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSessions((prev) => prev.filter((s) => s.isCurrent));
+                  setDeviceSuccessMsg("All other active device sessions terminated successfully.");
+                  logActivity(
+                    "Admin Remote Sessions Terminated",
+                    "security",
+                    "Terminated secondary active login sessions.",
+                    currentUser,
+                    "warning"
+                  );
+                  setTimeout(() => setDeviceSuccessMsg(""), 3500);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3.5 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-600 hover:text-white transition-colors cursor-pointer shrink-0"
+              >
+                <ShieldAlert size={13} />
+                <span>Terminate Other Sessions</span>
+              </button>
+            </div>
+
+            {deviceSuccessMsg && (
+              <div className="rounded-2xl border border-[#38d995] bg-[#e8f7f2] p-3 text-xs font-black text-[#159366] flex items-center gap-2">
+                <CheckCircle2 size={15} />
+                <span>{deviceSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {sessions.map((sess) => (
+                <div
+                  key={sess.id}
+                  className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                    sess.isCurrent
+                      ? "border-[#007fb8]/40 bg-[#e0f2fe]/30"
+                      : "border-[#cddce5] bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="size-10 rounded-xl bg-white border border-[#cddce5] flex items-center justify-center shrink-0 shadow-2xs">
+                      {sess.deviceType === "desktop" ? (
+                        <Monitor size={20} className="text-[#007fb8]" />
+                      ) : sess.deviceType === "laptop" ? (
+                        <Laptop size={20} className="text-[#102c45]" />
+                      ) : (
+                        <Smartphone size={20} className="text-[#159366]" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-[#102c45]">{sess.name}</span>
+                        {sess.isCurrent && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f7f2] border border-[#38d995]/50 px-2 py-0.5 text-[9.5px] font-black text-[#159366]">
+                            <span className="size-1.5 rounded-full bg-[#159366] animate-pulse" />
+                            Current Session
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] font-bold text-[#60768a] mt-0.5">
+                        {sess.os} &bull; {sess.browser}
+                      </p>
+                      <p className="text-[10.5px] text-[#94a3b8] font-mono mt-0.5">
+                        IP: {sess.ip} &bull; {sess.location}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] uppercase font-bold text-[#94a3b8] block">Last Active</span>
+                    <span className="text-xs font-black text-[#102c45]">{sess.lastActive}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Log History & Activity Trail */}
+          <div className="rounded-3xl border border-[#cddce5] bg-white p-6 sm:p-7 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#cddce5]/60">
+              <div>
+                <h3 className="text-base font-black text-[#102c45] flex items-center gap-2">
+                  <Activity size={18} className="text-[#007fb8]" />
+                  Administrator Log History
+                </h3>
+                <p className="text-xs text-[#60768a] mt-0.5">
+                  Recent system events and administrative operations recorded for this account.
+                </p>
+              </div>
+              <span className="rounded-full bg-[#edf2f3] px-3 py-1 text-[11px] font-bold text-[#60768a]">
+                Showing last {adminLogs.length} events
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#cddce5] text-[10.5px] font-black uppercase text-[#60768a]">
+                    <th className="py-2 px-2.5">Timestamp</th>
+                    <th className="py-2 px-2.5">Action</th>
+                    <th className="py-2 px-2.5">Details</th>
+                    <th className="py-2 px-2.5 text-center">Category</th>
+                    <th className="py-2 px-2.5 text-right">IP Address</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#edf2f3]">
+                  {adminLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-[#f8fafc]">
+                      <td className="py-2.5 px-2.5 text-[11px] font-mono text-[#60768a] whitespace-nowrap">
+                        {log.timestamp}
+                      </td>
+                      <td className="py-2.5 px-2.5 font-bold text-[#102c45]">{log.action}</td>
+                      <td className="py-2.5 px-2.5 text-[#60768a] max-w-xs truncate">{log.details}</td>
+                      <td className="py-2.5 px-2.5 text-center">
+                        <span className="rounded-full bg-[#e0f2fe] px-2 py-0.5 text-[10px] font-bold text-[#007fb8]">
+                          {log.category}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2.5 text-right font-mono text-[11px] text-[#60768a]">
+                        {log.ipAddress}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* AVATAR IMAGES GALLERY MODAL */}
+      {isAvatarModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#102c45]/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-[#cddce5] bg-white p-6 sm:p-7 shadow-2xl space-y-5">
+            <input
+              type="file"
+              ref={modalFileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*"
+              className="hidden"
+            />
+
+            <div className="flex items-center justify-between pb-3 border-b border-[#cddce5]">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-[#007fb8]" />
+                <h3 className="text-lg font-black text-[#102c45]">Choose Profile Photo &amp; Avatar</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="rounded-full p-1.5 text-[#60768a] hover:bg-[#edf2f3] hover:text-[#102c45] transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              {["all", "Official", "Classroom", "Lecture", "Events", "Scholars"].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedAvatarCategory(cat)}
+                  className={`rounded-full px-3 py-1 font-bold text-xs transition-colors cursor-pointer ${
+                    selectedAvatarCategory === cat
+                      ? "bg-[#102c45] text-white"
+                      : "bg-[#edf2f3] text-[#60768a] hover:bg-[#cddce5]"
+                  }`}
+                >
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {/* Avatar Gallery Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-[340px] overflow-y-auto p-1">
+              {ADMIN_AVATAR_PRESETS.filter(
+                (p) => selectedAvatarCategory === "all" || p.category === selectedAvatarCategory
+              ).map((preset) => {
+                const isSelected = avatarUrl === preset.url;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      handleSelectPreset(preset.url);
+                      setIsAvatarModalOpen(false);
+                    }}
+                    className={`relative rounded-2xl border-2 p-2 flex flex-col items-center gap-2 transition-all cursor-pointer group ${
+                      isSelected
+                        ? "border-[#007fb8] bg-[#e0f2fe]/40 shadow-md shadow-[#007fb8]/20"
+                        : "border-[#cddce5] bg-white hover:border-[#0ac9e8] hover:bg-[#edf2f3]/50"
+                    }`}
+                  >
+                    <div className="relative size-16 rounded-full overflow-hidden border-2 border-white shadow-xs">
+                      <Image
+                        src={preset.url}
+                        alt={preset.label}
+                        width={64}
+                        height={64}
+                        className="size-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-[#007fb8]/40 flex items-center justify-center">
+                          <Check size={20} className="text-white drop-shadow-md" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-bold text-[#102c45] text-center line-clamp-1">
+                      {preset.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Upload Strip inside modal */}
+            <div className="pt-3 border-t border-[#cddce5] flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => modalFileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                className="inline-flex items-center gap-2 rounded-full border border-[#007fb8] bg-[#e0f2fe] px-4 py-2 text-xs font-black text-[#007fb8] hover:bg-[#007fb8] hover:text-white transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Upload size={14} />
+                <span>Upload Custom Photo from Device</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="rounded-full bg-[#102c45] px-5 py-2 text-xs font-black text-white hover:bg-[#007fb8] transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

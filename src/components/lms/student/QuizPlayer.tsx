@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Clock,
   CheckCircle2,
   XCircle,
   ArrowRight,
   ArrowLeft,
-  RotateCcw,
   Trophy,
   Flame,
   HelpCircle,
   Check,
+  Lock,
+  Shuffle,
+  ShieldAlert,
 } from "lucide-react";
-import { LMSQuiz } from "@/data/lmsData";
+import { LMSQuiz, QuizQuestion } from "@/data/lmsData";
 
 interface QuizPlayerProps {
   quiz: LMSQuiz;
@@ -21,35 +23,77 @@ interface QuizPlayerProps {
   onSaveScore: (quizId: string, score: number, total: number) => void;
 }
 
+// Fisher-Yates array shuffle
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Randomize both the question order AND the multiple-choice options (A, B, C, D)
+function prepareShuffledQuiz(questions: QuizQuestion[]): QuizQuestion[] {
+  const randomizedOptions = questions.map((q) => {
+    const correctAnswerText = q.options[q.correctAnswer];
+    const shuffledOpts = shuffleArray(q.options);
+    const newCorrectIndex = shuffledOpts.indexOf(correctAnswerText);
+    return {
+      ...q,
+      options: shuffledOpts,
+      correctAnswer: newCorrectIndex >= 0 ? newCorrectIndex : q.correctAnswer,
+    };
+  });
+
+  return shuffleArray(randomizedOptions);
+}
+
 export default function QuizPlayer({
   quiz,
   onExit,
   onSaveScore,
 }: QuizPlayerProps) {
+  const isAlreadyCompleted = !!quiz.completed;
+
+  // Shuffle questions and options once when starting
+  const activeQuestions = useMemo(() => {
+    if (isAlreadyCompleted) {
+      return quiz.questions;
+    }
+    return prepareShuffledQuiz(quiz.questions);
+  }, [quiz.questions, isAlreadyCompleted]);
+
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [quizScore, setQuizScore] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [earnedPoints, setEarnedPoints] = useState(0);
-  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [quizSubmitted, setQuizSubmitted] = useState(isAlreadyCompleted);
+  const [quizScore, setQuizScore] = useState(quiz.score || 0);
+  const [correctCount, setCorrectCount] = useState(() => {
+    if (isAlreadyCompleted && quiz.score !== undefined) {
+      return Math.round((quiz.score / 100) * quiz.questions.length);
+    }
+    return 0;
+  });
+  const [earnedPoints, setEarnedPoints] = useState(quiz.score || 0);
+  const [isReviewMode, setIsReviewMode] = useState(isAlreadyCompleted);
 
   // Timer state (seconds)
   const initialSeconds = (quiz.durationMinutes || 15) * 60;
   const [secondsRemaining, setSecondsRemaining] = useState(initialSeconds);
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [isTimerRunning, setIsTimerRunning] = useState(!isAlreadyCompleted);
 
   const handleSubmitQuiz = useCallback(() => {
+    if (isAlreadyCompleted) return;
     setIsTimerRunning(false);
 
     let correct = 0;
-    quiz.questions.forEach((q) => {
+    activeQuestions.forEach((q) => {
       if (selectedAnswers[q.id] === q.correctAnswer) {
         correct += 1;
       }
     });
 
-    const scorePct = Math.round((correct / quiz.questions.length) * 100);
+    const scorePct = Math.round((correct / activeQuestions.length) * 100);
     const xpPoints = Math.round(scorePct); // 1 point per %
 
     setCorrectCount(correct);
@@ -57,11 +101,11 @@ export default function QuizPlayer({
     setEarnedPoints(xpPoints);
     setQuizSubmitted(true);
     onSaveScore(quiz.id, scorePct, 100);
-  }, [quiz, selectedAnswers, onSaveScore]);
+  }, [activeQuestions, selectedAnswers, onSaveScore, quiz.id, isAlreadyCompleted]);
 
   // Countdown timer effect
   useEffect(() => {
-    if (!isTimerRunning || quizSubmitted) return;
+    if (!isTimerRunning || quizSubmitted || isAlreadyCompleted) return;
 
     const timer = setInterval(() => {
       setSecondsRemaining((prev) => {
@@ -77,7 +121,7 @@ export default function QuizPlayer({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isTimerRunning, quizSubmitted, handleSubmitQuiz]);
+  }, [isTimerRunning, quizSubmitted, isAlreadyCompleted, handleSubmitQuiz]);
 
   // Format time mm:ss
   const formatTime = (secs: number) => {
@@ -87,22 +131,13 @@ export default function QuizPlayer({
   };
 
   const handleSelectOption = (questionId: string, optionIndex: number) => {
-    if (quizSubmitted) return;
+    if (quizSubmitted || isAlreadyCompleted) return;
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
   };
 
-  const handleRetakeQuiz = () => {
-    setSelectedAnswers({});
-    setQuizSubmitted(false);
-    setIsReviewMode(false);
-    setCurrentQIndex(0);
-    setSecondsRemaining(initialSeconds);
-    setIsTimerRunning(true);
-  };
-
-  const currentQ = quiz.questions[currentQIndex];
+  const currentQ = activeQuestions[currentQIndex];
   const answeredCount = Object.keys(selectedAnswers).length;
-  const totalQuestions = quiz.questions.length;
+  const totalQuestions = activeQuestions.length;
   const isTimeCritical = secondsRemaining <= 120 && secondsRemaining > 0;
 
   return (
@@ -110,20 +145,28 @@ export default function QuizPlayer({
       {/* 1. Header Bar with Timer & Exit */}
       <div className="rounded-3xl border border-[#cddce5] bg-white p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="rounded-full bg-[#e0f2fe] px-2.5 py-0.5 text-[10px] font-black text-[#007fb8]">
               {quiz.subject}
             </span>
             <span className="rounded-full bg-[#f1f5f9] px-2.5 py-0.5 text-[10px] font-bold text-[#60768a]">
               {quiz.batch}
             </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7] border border-[#f59e0b]/40 px-2 py-0.5 text-[9.5px] font-black text-[#92400e]">
+              <Lock size={11} /> 1 Attempt Only
+            </span>
+            {!isAlreadyCompleted && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f7f2] border border-[#38d995]/40 px-2 py-0.5 text-[9.5px] font-black text-[#159366]">
+                <Shuffle size={11} /> Shuffled &amp; Randomized
+              </span>
+            )}
           </div>
           <h3 className="text-lg font-black text-[#102c45] mt-1">{quiz.title}</h3>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Live Timer */}
-          {!quizSubmitted && (
+          {!quizSubmitted && !isAlreadyCompleted && (
             <div
               className={`flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-black border transition-all ${
                 isTimeCritical
@@ -133,6 +176,13 @@ export default function QuizPlayer({
             >
               <Clock size={16} />
               <span>{formatTime(secondsRemaining)}</span>
+            </div>
+          )}
+
+          {isAlreadyCompleted && (
+            <div className="flex items-center gap-1.5 rounded-2xl bg-[#edf2f3] px-3.5 py-2 text-xs font-black text-[#60768a] border border-[#cddce5]">
+              <Lock size={14} className="text-[#94a3b8]" />
+              <span>Attempt Locked</span>
             </div>
           )}
 
@@ -154,9 +204,10 @@ export default function QuizPlayer({
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs font-black uppercase tracking-wider text-[#159366]">
-              Quiz Completed Successfully!
-            </span>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#102c45] text-white px-3.5 py-1 text-xs font-black mb-2">
+              <Lock size={13} className="text-[#38d995]" />
+              <span>One-Time Attempt Finalized</span>
+            </div>
             <h4 className="text-3xl sm:text-4xl font-black text-[#102c45]">
               {quizScore}% Score
             </h4>
@@ -169,7 +220,18 @@ export default function QuizPlayer({
           {/* Points Bonus Award Card */}
           <div className="inline-flex items-center gap-2 rounded-2xl border border-[#007fb8]/30 bg-[#e0f2fe] px-5 py-2.5 text-sm font-black text-[#007fb8]">
             <Flame size={18} className="text-[#0ac9e8]" />
-            <span>+{earnedPoints} XP Points added to your Leaderboard ranking!</span>
+            <span>+{earnedPoints} XP Points permanently awarded to your Leaderboard standing!</span>
+          </div>
+
+          {/* One-time attempt notice */}
+          <div className="rounded-2xl border border-[#cddce5] bg-white/80 p-3.5 text-xs text-[#60768a] max-w-md mx-auto">
+            <p className="font-bold flex items-center justify-center gap-1.5 text-[#102c45]">
+              <ShieldAlert size={14} className="text-[#f59e0b]" />
+              Attempt limit: 1 of 1 attempt used.
+            </p>
+            <p className="text-[11px] mt-0.5">
+              This quiz is now locked from further retakes to protect competition integrity. You can review the full answer scheme below anytime.
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -184,18 +246,10 @@ export default function QuizPlayer({
 
             <button
               type="button"
-              onClick={handleRetakeQuiz}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-[#cddce5] bg-white px-6 py-3 text-xs font-black text-[#102c45] hover:bg-[#edf2f3] transition-colors cursor-pointer"
-            >
-              <RotateCcw size={15} /> Retake Quiz
-            </button>
-
-            <button
-              type="button"
               onClick={onExit}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#007fb8_0%,#0ac9e8_100%)] px-6 py-3 text-xs font-black uppercase text-white shadow-md cursor-pointer"
             >
-              Back to Quizzes
+              Return to Quizzes
             </button>
           </div>
         </div>
@@ -217,7 +271,7 @@ export default function QuizPlayer({
 
             {/* Stepper Navigator Pills */}
             <div className="flex items-center gap-2 flex-wrap">
-              {quiz.questions.map((qn, idx) => {
+              {activeQuestions.map((qn, idx) => {
                 const isCurrent = currentQIndex === idx;
                 const isAnswered = selectedAnswers[qn.id] !== undefined;
 
@@ -248,7 +302,7 @@ export default function QuizPlayer({
             </h4>
           </div>
 
-          {/* 4 Multiple Choice Options */}
+          {/* 4 Shuffled Multiple Choice Options */}
           <div className="space-y-3">
             {currentQ.options.map((opt, optIdx) => {
               const isSelected = selectedAnswers[currentQ.id] === optIdx;
@@ -312,33 +366,35 @@ export default function QuizPlayer({
                 onClick={handleSubmitQuiz}
                 className="inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#159366_0%,#38d995_100%)] px-7 py-2.5 text-xs font-black uppercase text-white shadow-lg shadow-[#159366]/30 hover:scale-102 active:scale-95 transition-all cursor-pointer"
               >
-                Submit Answers <CheckCircle2 size={15} />
+                Submit Final Answers <CheckCircle2 size={15} />
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* 4. REVIEW MODE (Shows all answers with explanations) */}
-      {quizSubmitted && isReviewMode && (
+      {/* 4. REVIEW MODE (Read-only Answer Scheme with explanations) */}
+      {isReviewMode && (
         <div className="rounded-3xl border border-[#cddce5] bg-white p-6 shadow-xs space-y-6">
-          <div className="flex items-center justify-between border-b border-[#cddce5]/60 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#cddce5]/60 pb-4">
             <div>
-              <span className="text-xs font-bold text-[#007fb8]">Answer Scheme &amp; Feedback</span>
-              <h4 className="text-lg font-black text-[#102c45]">Quiz Review Mode</h4>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-[#f1f5f9] px-2.5 py-0.5 text-[10px] font-black text-[#60768a] mb-1">
+                <Lock size={12} /> Read-only Scheme &bull; One-Time Attempt Used
+              </div>
+              <h4 className="text-lg font-black text-[#102c45]">Quiz Answer Scheme &amp; Teacher Review</h4>
             </div>
 
             <button
               type="button"
-              onClick={() => setIsReviewMode(false)}
-              className="rounded-full border border-[#cddce5] bg-white px-4 py-2 text-xs font-bold text-[#102c45] hover:bg-[#edf2f3] cursor-pointer"
+              onClick={onExit}
+              className="rounded-full border border-[#cddce5] bg-white px-5 py-2 text-xs font-bold text-[#102c45] hover:bg-[#edf2f3] cursor-pointer"
             >
-              Back to Score Summary
+              Back to Quizzes
             </button>
           </div>
 
           <div className="space-y-6">
-            {quiz.questions.map((qn, idx) => {
+            {activeQuestions.map((qn, idx) => {
               const studentAnswer = selectedAnswers[qn.id];
               const isCorrect = studentAnswer === qn.correctAnswer;
 
@@ -357,11 +413,11 @@ export default function QuizPlayer({
                     </p>
                     {isCorrect ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f7f2] border border-[#38d995]/50 px-2.5 py-0.5 text-xs font-black text-[#159366] shrink-0">
-                        <CheckCircle2 size={13} /> Correct (+1)
+                        <CheckCircle2 size={13} /> Correct
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-red-100 border border-red-300 px-2.5 py-0.5 text-xs font-black text-red-700 shrink-0">
-                        <XCircle size={13} /> Incorrect (0)
+                        <XCircle size={13} /> Incorrect
                       </span>
                     )}
                   </div>
@@ -395,7 +451,7 @@ export default function QuizPlayer({
                           )}
                           {isOptionSelected && !isOptionCorrect && (
                             <span className="text-[10px] font-black uppercase text-red-700">
-                              ✗ Your Choice
+                              ✗ Your Answer
                             </span>
                           )}
                         </div>
@@ -420,7 +476,7 @@ export default function QuizPlayer({
             onClick={onExit}
             className="w-full rounded-full bg-[linear-gradient(135deg,#102c45_0%,#007fb8_100%)] py-3 text-xs font-black uppercase text-white shadow-md cursor-pointer"
           >
-            Finished Reviewing Quiz
+            Finished Reviewing Scheme
           </button>
         </div>
       )}

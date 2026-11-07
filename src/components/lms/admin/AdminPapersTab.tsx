@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   Trophy,
@@ -39,6 +39,7 @@ import {
   generateAutoStatus,
 } from "@/lib/lmsStore";
 import { printExamResultsPdf } from "@/lib/pdfPrintService";
+import LmsPagination from "@/components/lms/shared/LmsPagination";
 
 interface AdminPapersTabProps {
   papers: LMSPaper[];
@@ -190,6 +191,20 @@ export default function AdminPapersTab({
 
     return list.sort((a, b) => a.rank - b.rank);
   }, [examResults, selectedScoreFilter, searchQuery]);
+
+  // Pagination for Results Leaderboard
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  // Reset page when filter or selected exam changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedScoreFilter, searchQuery, selectedPaperId]);
+
+  const paginatedResults = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredResults.slice(start, start + pageSize);
+  }, [filteredResults, currentPage, pageSize]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -1364,7 +1379,7 @@ export default function AdminPapersTab({
                       </td>
                     </tr>
                   ) : (
-                    filteredResults.map((student) => {
+                    paginatedResults.map((student) => {
                       const isTop1 = student.rank === 1;
                       const isTop2 = student.rank === 2;
                       const isTop3 = student.rank === 3;
@@ -1528,16 +1543,19 @@ export default function AdminPapersTab({
               </table>
             </div>
 
-            {/* Table Footer */}
-            <div className="flex items-center justify-between text-xs text-[#60768a] pt-2">
-              <span>
-                Displaying <strong className="text-[#102c45]">{filteredResults.length}</strong> of{" "}
-                <strong className="text-[#102c45]">{examResults.length}</strong> candidates evaluated.
-              </span>
-              <span className="font-bold text-[#159366]">
-                Audited Government Marking Scheme Verified
-              </span>
-            </div>
+            {/* Table Pagination Footer */}
+            <LmsPagination
+              currentPage={currentPage}
+              totalItems={filteredResults.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[15, 30, 50, 100]}
+              itemName="candidates evaluated"
+            />
           </div>
         </>
       )}

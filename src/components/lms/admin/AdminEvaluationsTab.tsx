@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from "react";
-import { Award, Trophy, Flame, Search } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Award, Trophy, Flame, Search, Eye, ExternalLink } from "lucide-react";
 import { LMSUser, LMSEvaluation } from "@/data/lmsData";
 import { getLmsPapers, getLmsQuizzes, getLmsEvaluations } from "@/lib/lmsStore";
-import { calculateLeaderboard } from "@/lib/leaderboardService";
+import { calculateLeaderboard, StudentLeaderboardEntry } from "@/lib/leaderboardService";
+import StudentHistoryModal from "@/components/lms/admin/StudentHistoryModal";
+import LmsPagination from "@/components/lms/shared/LmsPagination";
 
 interface AdminEvaluationsTabProps {
   students: LMSUser[];
@@ -23,6 +25,11 @@ export default function AdminEvaluationsTab({
     "Focus on weekly model paper problem sets."
   );
   const [searchLeaderboard, setSearchLeaderboard] = useState("");
+  const [selectedEntryForHistory, setSelectedEntryForHistory] = useState<StudentLeaderboardEntry | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const papers = useMemo(() => getLmsPapers(), []);
   const quizzes = useMemo(() => getLmsQuizzes(), []);
@@ -42,6 +49,16 @@ export default function AdminEvaluationsTab({
         e.school.toLowerCase().includes(q)
     );
   }, [leaderboard, searchLeaderboard]);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchLeaderboard]);
+
+  const paginatedLeaderboard = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredLeaderboard.slice(start, start + pageSize);
+  }, [filteredLeaderboard, currentPage, pageSize]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +84,11 @@ export default function AdminEvaluationsTab({
     setWeaknesses("");
     alert("Student evaluation successfully recorded and published to student dashboard!");
     onSuccess();
+  };
+
+  const handleOpenEvaluationForStudent = (targetStudentId: string) => {
+    setStudentId(targetStudentId);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -170,7 +192,7 @@ export default function AdminEvaluationsTab({
               <Trophy size={18} className="text-[#f59e0b]" /> System Academic Leaderboard &amp; Points Overview
             </h3>
             <p className="text-xs text-[#60768a] mt-0.5">
-              Live ranking of all {leaderboard.length} enrolled students calculated from exam marks, quiz accuracy, and evaluations.
+              Live ranking of all {leaderboard.length} enrolled students. <span className="text-[#007fb8] font-bold">Click any student row to inspect complete exam results history and profile summary.</span>
             </p>
           </div>
           <div className="relative">
@@ -196,34 +218,84 @@ export default function AdminEvaluationsTab({
                 <th className="py-2.5 px-3 text-center">Quiz %</th>
                 <th className="py-2.5 px-3 text-center">Evaluation Grade</th>
                 <th className="py-2.5 px-3 text-right">System Points</th>
+                <th className="py-2.5 px-3 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#edf2f3]">
-              {filteredLeaderboard.slice(0, 15).map((e) => (
-                <tr key={e.id} className="hover:bg-[#f8fafc]">
-                  <td className="py-2.5 px-3 font-black text-[#102c45]">
+              {paginatedLeaderboard.map((e) => (
+                <tr
+                  key={e.id}
+                  onClick={() => setSelectedEntryForHistory(e)}
+                  className="group hover:bg-[#e0f2fe]/40 transition-colors cursor-pointer"
+                  title="Click to view full exam history and student profile summary"
+                >
+                  <td className="py-3 px-3 font-black text-[#102c45]">
                     {e.rank === 1 ? "🥇 #1" : e.rank === 2 ? "🥈 #2" : e.rank === 3 ? "🥉 #3" : `#${e.rank}`}
                   </td>
-                  <td className="py-2.5 px-3 font-bold text-[#102c45]">{e.fullName}</td>
-                  <td className="py-2.5 px-3 text-[#60768a]">{e.indexNo}</td>
-                  <td className="py-2.5 px-3 text-center font-bold text-[#102c45]">{e.avgExamScore}%</td>
-                  <td className="py-2.5 px-3 text-center font-bold text-[#159366]">{e.quizAccuracy}%</td>
-                  <td className="py-2.5 px-3 text-center">
+                  <td className="py-3 px-3 font-bold text-[#102c45]">
+                    <div className="flex items-center gap-2">
+                      <span className="group-hover:text-[#007fb8] transition-colors">{e.fullName}</span>
+                      <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-[#007fb8] transition-opacity" />
+                    </div>
+                  </td>
+                  <td className="py-3 px-3 text-[#60768a] font-mono">{e.indexNo}</td>
+                  <td className="py-3 px-3 text-center font-bold text-[#102c45]">{e.avgExamScore}%</td>
+                  <td className="py-3 px-3 text-center font-bold text-[#159366]">{e.quizAccuracy}%</td>
+                  <td className="py-3 px-3 text-center">
                     <span className="rounded-full bg-[#e0f2fe] px-2 py-0.5 text-[10px] font-bold text-[#007fb8]">
                       {e.latestPerformanceGrade || "Pending"}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-right font-black text-[#007fb8]">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#e0f2fe] px-2.5 py-0.5">
-                      <Flame size={12} className="text-[#0ac9e8]" /> {e.totalPoints} pts
+                  <td className="py-3 px-3 text-right font-black text-[#007fb8]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#e0f2fe] px-2.5 py-0.5 group-hover:bg-[#007fb8] group-hover:text-white transition-colors">
+                      <Flame size={12} className="text-[#0ac9e8] group-hover:text-amber-300" /> {e.totalPoints} pts
                     </span>
+                  </td>
+                  <td className="py-3 px-3 text-center">
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setSelectedEntryForHistory(e);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#007fb8]/30 bg-white px-2.5 py-1 text-[10.5px] font-black text-[#007fb8] hover:bg-[#007fb8] hover:text-white transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <Eye size={12} />
+                      <span>History</span>
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Leaderboard Pagination Bar */}
+        <LmsPagination
+          currentPage={currentPage}
+          totalItems={filteredLeaderboard.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[15, 30, 60, 100]}
+          itemName="students ranked"
+        />
       </div>
+
+      {/* Complete Student Exam Results History & Profile Summary Modal */}
+      <StudentHistoryModal
+        isOpen={selectedEntryForHistory !== null}
+        onClose={() => setSelectedEntryForHistory(null)}
+        entry={selectedEntryForHistory}
+        studentUser={students.find((s) => s.id === selectedEntryForHistory?.id || s.indexNo === selectedEntryForHistory?.indexNo)}
+        papers={papers}
+        quizzes={quizzes}
+        evaluations={evaluations}
+        onOpenEvaluationForm={handleOpenEvaluationForStudent}
+      />
     </div>
   );
 }

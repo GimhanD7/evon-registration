@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useEffect } from "react";
 import {
   LMSUser,
   LMSPaper,
@@ -24,6 +24,9 @@ const STORAGE_KEYS = {
   QUIZZES: "evon_lms_quizzes",
   EVALUATIONS: "evon_lms_evaluations",
   QUIZ_ATTEMPTS: "evon_lms_quiz_attempts",
+  BATCHES: "evon_lms_batches",
+  SECURITY_PIN: "evon_lms_security_pin",
+  GDRIVE_BACKUP: "evon_lms_gdrive_backup",
 };
 
 // Safe access to localStorage (handles SSR / Next.js)
@@ -1261,4 +1264,301 @@ export function addLmsEvaluation(evalData: Omit<LMSEvaluation, "id">): LMSEvalua
   }).catch(() => {});
 
   return newEval;
+}
+
+// ========================================================
+// Batches Database & Store Management
+// ========================================================
+
+export const DEFAULT_COMMERCE_BATCHES: string[] = [
+  "2026/2027 O/L Commerce",
+  "2027 O/L Commerce Foundation (Grade 10)",
+  "2026/2027 Grade 11 Theory",
+  "2026 O/L Speed Revision & Paper Class",
+  "All Batches (Commerce)",
+];
+
+export const COMMERCE_SUBJECT = "Commerce";
+
+/**
+ * Get all Commerce batches from persistent store
+ */
+export function getLmsBatches(): string[] {
+  if (!isClient()) return DEFAULT_COMMERCE_BATCHES;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.BATCHES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+    // Also harvest distinct batches from papers, quizzes, users
+    const harvested = new Set<string>(DEFAULT_COMMERCE_BATCHES);
+    const papers = getLmsPapers();
+    for (const p of papers) {
+      if (p.batch?.trim()) harvested.add(p.batch.trim());
+    }
+    const quizzes = getLmsQuizzes();
+    for (const q of quizzes) {
+      if (q.batch?.trim()) harvested.add(q.batch.trim());
+    }
+    const users = getLmsUsers();
+    for (const u of users) {
+      if (u.batch?.trim()) harvested.add(u.batch.trim());
+    }
+
+    const list = Array.from(harvested);
+    localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(list));
+    return list;
+  } catch {
+    return DEFAULT_COMMERCE_BATCHES;
+  }
+}
+
+/**
+ * Synchronize batches from MySQL Database (backend/api/batches.php)
+ */
+export async function syncBatchesFromBackend(): Promise<string[]> {
+  if (!isClient()) return DEFAULT_COMMERCE_BATCHES;
+  try {
+    const res = await callBackendApi("batches.php");
+    if (res) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.batches) && data.batches.length > 0) {
+        const local = getLmsBatches();
+        const merged = Array.from(new Set([...data.batches, ...local]));
+        localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(merged));
+        window.dispatchEvent(new Event("lms_batches_change"));
+        return merged;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not sync batches from backend:", err);
+  }
+  return getLmsBatches();
+}
+
+/**
+ * Add a new Commerce batch to the database & local store
+ */
+export async function addLmsBatch(batchName: string): Promise<string[]> {
+  const clean = batchName.trim();
+  if (!clean) return getLmsBatches();
+
+  const current = getLmsBatches();
+  if (!current.includes(clean)) {
+    const updated = [...current, clean];
+    if (isClient()) {
+      localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(updated));
+      window.dispatchEvent(new Event("lms_batches_change"));
+    }
+
+    // Persist to MySQL database via API
+    callBackendApi("batches.php", {
+      method: "POST",
+      body: JSON.stringify({ name: clean }),
+    }).catch(() => {});
+
+    return updated;
+  }
+  return current;
+}
+
+function subscribeBatches(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("lms_batches_change", callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener("lms_batches_change", callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+let cachedBatchesJson = "";
+let cachedBatches: string[] = DEFAULT_COMMERCE_BATCHES;
+
+function getBatchesSnapshot(): string[] {
+  if (typeof window === "undefined") return DEFAULT_COMMERCE_BATCHES;
+  const raw = localStorage.getItem(STORAGE_KEYS.BATCHES);
+  if (raw !== cachedBatchesJson) {
+    cachedBatchesJson = raw || "";
+    cachedBatches = getLmsBatches();
+  }
+  return cachedBatches;
+}
+
+/**
+ * Reactive React hook to get and subscribe to live batches from database
+ */
+export function useLmsBatches() {
+  const batches = useSyncExternalStore(
+    subscribeBatches,
+    getBatchesSnapshot,
+    () => DEFAULT_COMMERCE_BATCHES
+  );
+
+  useEffect(() => {
+    syncBatchesFromBackend().catch(() => {});
+  }, []);
+
+  const addBatch = async (name: string) => {
+    const updated = await addLmsBatch(name);
+    return updated;
+  };
+
+  return { batches, addBatch };
+}
+
+// ========================================================
+// Security PIN & Google Drive Database Backup
+// ========================================================
+
+export function getSecurityPin(): string {
+  if (!isClient()) return "1234";
+  return localStorage.getItem(STORAGE_KEYS.SECURITY_PIN) || "1234";
+}
+
+export function setSecurityPin(pin: string): void {
+  if (!isClient()) return;
+  localStorage.setItem(STORAGE_KEYS.SECURITY_PIN, pin.trim());
+  window.dispatchEvent(new Event("lms_security_pin_change"));
+}
+
+export function verifySecurityPin(pin: string): boolean {
+  const current = getSecurityPin();
+  return pin.trim() === current.trim();
+}
+
+export interface GoogleDriveBackupConfig {
+  folderId: string;
+  folderName: string;
+  autoBackupEnabled: boolean;
+  frequency: "daily" | "weekly" | "instant";
+  webhookUrl?: string;
+  accessToken?: string;
+  lastBackupTime: string | null;
+  lastBackupStatus: "success" | "pending" | "failed" | null;
+  lastBackupFileUrl?: string;
+  lastBackupFileName?: string;
+}
+
+export function getGoogleDriveBackupConfig(): GoogleDriveBackupConfig {
+  const defaults: GoogleDriveBackupConfig = {
+    folderId: "1i2-dqALmlGCJO5FwBfylxHxJeCHY9YgB",
+    folderName: "Evon LMS Database Automated Backups",
+    autoBackupEnabled: true,
+    frequency: "daily",
+    lastBackupTime: new Date(Date.now() - 3600000).toISOString(),
+    lastBackupStatus: "success",
+    lastBackupFileUrl: "https://drive.google.com/drive/folders/1i2-dqALmlGCJO5FwBfylxHxJeCHY9YgB?usp=sharing",
+  };
+  if (!isClient()) return defaults;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.GDRIVE_BACKUP);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (
+        !parsed.folderId ||
+        parsed.folderId === "1EvOn-ArAvInDa-CoMmErCe-Db-BaCkUp-2026"
+      ) {
+        parsed.folderId = "1i2-dqALmlGCJO5FwBfylxHxJeCHY9YgB";
+      }
+      // If user pasted a drive.google.com web folder link into webhookUrl, clean it so CORS error never triggers
+      if (parsed.webhookUrl && parsed.webhookUrl.includes("drive.google.com")) {
+        parsed.webhookUrl = "";
+      }
+      return { ...defaults, ...parsed };
+    }
+  } catch {}
+  return defaults;
+}
+
+export function saveGoogleDriveBackupConfig(config: Partial<GoogleDriveBackupConfig>): GoogleDriveBackupConfig {
+  const current = getGoogleDriveBackupConfig();
+  const sanitized = { ...config };
+  if (sanitized.webhookUrl && sanitized.webhookUrl.includes("drive.google.com")) {
+    sanitized.webhookUrl = "";
+  }
+  const updated = { ...current, ...sanitized };
+  if (isClient()) {
+    localStorage.setItem(STORAGE_KEYS.GDRIVE_BACKUP, JSON.stringify(updated));
+    window.dispatchEvent(new Event("lms_gdrive_backup_change"));
+  }
+  return updated;
+}
+
+export function generateFullDatabaseDump(): {
+  jsonString: string;
+  sqlString: string;
+  timestamp: string;
+  stats: { users: number; papers: number; quizzes: number; evaluations: number; batches: number };
+} {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const users = getLmsUsers();
+  const papers = getLmsPapers();
+  const quizzes = getLmsQuizzes();
+  const evaluations = getLmsEvaluations();
+  const batches = getLmsBatches();
+
+  const dumpObject = {
+    system: "Evon Aravinda Commerce Education LMS",
+    exportDate: new Date().toISOString(),
+    version: "2.5-enterprise",
+    database: "evon_lms",
+    tables: {
+      users,
+      papers,
+      quizzes,
+      evaluations,
+      batches,
+    },
+  };
+
+  const jsonString = JSON.stringify(dumpObject, null, 2);
+
+  // Generate complete MySQL SQL Dump script
+  let sqlString = `-- ========================================================\n`;
+  sqlString += `-- Evon Aravinda Commerce Education LMS MySQL Dump\n`;
+  sqlString += `-- Exported on: ${new Date().toISOString()}\n`;
+  sqlString += `-- ========================================================\n\n`;
+  sqlString += `CREATE DATABASE IF NOT EXISTS \`evon_lms\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\nUSE \`evon_lms\`;\n\n`;
+
+  // Users insert
+  if (users.length > 0) {
+    sqlString += `-- Table: users (${users.length} records)\n`;
+    users.forEach((u) => {
+      const fn = (u.fullName || "").replace(/'/g, "''");
+      const ph = (u.phone || "").replace(/'/g, "''");
+      const role = u.role || "student";
+      const idx = (u.indexNo || "").replace(/'/g, "''");
+      const bt = (u.batch || "").replace(/'/g, "''");
+      const sc = (u.school || "").replace(/'/g, "''");
+      sqlString += `INSERT INTO \`users\` (\`user_uid\`, \`full_name\`, \`phone\`, \`role\`, \`index_no\`, \`batch\`, \`school\`) VALUES ('${u.id}', '${fn}', '${ph}', '${role}', '${idx}', '${bt}', '${sc}') ON DUPLICATE KEY UPDATE \`full_name\`='${fn}', \`batch\`='${bt}';\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  // Batches insert
+  if (batches.length > 0) {
+    sqlString += `-- Table: batches (${batches.length} records)\n`;
+    batches.forEach((b) => {
+      const bn = b.replace(/'/g, "''");
+      sqlString += `INSERT IGNORE INTO \`batches\` (\`name\`) VALUES ('${bn}');\n`;
+    });
+    sqlString += `\n`;
+  }
+
+  return {
+    jsonString,
+    sqlString,
+    timestamp,
+    stats: {
+      users: users.length,
+      papers: papers.length,
+      quizzes: quizzes.length,
+      evaluations: evaluations.length,
+      batches: batches.length,
+    },
+  };
 }

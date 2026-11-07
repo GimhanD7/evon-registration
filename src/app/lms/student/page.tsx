@@ -86,6 +86,13 @@ export default function StudentLmsPage() {
     }
   }, [isLoaded, currentUser, router]);
 
+  const handleSelectTab = (tabId: StudentTab) => {
+    setActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/lms/student?tab=${tabId}`);
+    }
+  };
+
   const handleLogout = () => {
     logoutLms();
     router.push("/");
@@ -148,7 +155,7 @@ export default function StudentLmsPage() {
         <LmsSidebar
           items={menuItems}
           activeTab={activeTab}
-          onSelectTab={(tabId) => setActiveTab(tabId as StudentTab)}
+          onSelectTab={(tabId) => handleSelectTab(tabId as StudentTab)}
           isOpenMobile={mobileSidebarOpen}
           onCloseMobile={() => setMobileSidebarOpen(false)}
           user={currentUser}
@@ -163,7 +170,7 @@ export default function StudentLmsPage() {
               <StudentOverviewTab
                 papers={papers}
                 evaluations={evaluations}
-                onSelectTab={(tabId) => setActiveTab(tabId as StudentTab)}
+                onSelectTab={(tabId) => handleSelectTab(tabId as StudentTab)}
               />
             )}
 
@@ -210,7 +217,7 @@ export default function StudentLmsPage() {
       {/* Modern Student Mobile Bottom Navigation Bar with LMS Icons & Functions */}
       <StudentMobileBottomNav
         activeTab={activeTab}
-        onSelectTab={(tabId) => setActiveTab(tabId as StudentTab)}
+        onSelectTab={(tabId) => handleSelectTab(tabId as StudentTab)}
         counts={{
           papers: papers.length,
           quizzes: quizzes.length,

@@ -12,6 +12,8 @@ const ALLOWED_SCRIPTS = new Set([
   "results.php",
   "evaluations.php",
   "seed.php",
+  "batches.php",
+  "backup.php",
 ]);
 
 const PHP_CLI_PATHS = [

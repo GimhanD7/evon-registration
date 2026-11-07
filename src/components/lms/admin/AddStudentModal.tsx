@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 import { LMSUser } from "@/data/lmsData";
+import { useLmsBatches } from "@/lib/lmsStore";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -25,11 +26,12 @@ export default function AddStudentModal({
   onAddUser,
   onSuccess,
 }: AddStudentModalProps) {
+  const { batches: dbBatches } = useLmsBatches();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [school, setSchool] = useState("");
   const [indexNo, setIndexNo] = useState("");
-  const [batch, setBatch] = useState("2026 O/L Speed Revision & Paper Class");
+  const [batch, setBatch] = useState(dbBatches[0] || "2026/2027 O/L Commerce");
   const [password, setPassword] = useState("pass123");
 
   if (!isOpen) return null;
@@ -128,13 +130,18 @@ export default function AddStudentModal({
           </div>
 
           <div>
-            <label className="block font-bold text-[#102c45] mb-1">Batch Enrolled</label>
-            <input
-              type="text"
+            <label className="block font-bold text-[#102c45] mb-1">Commerce Batch Enrolled</label>
+            <select
               value={batch}
               onChange={(e) => setBatch(e.target.value)}
-              className="w-full rounded-2xl border border-[#cddce5] bg-[#edf2f3]/50 py-2.5 px-3 font-bold text-[#102c45] focus:bg-white focus:border-[#007fb8] focus:outline-none"
-            />
+              className="w-full rounded-2xl border border-[#cddce5] bg-[#edf2f3]/50 py-2.5 px-3 font-bold text-[#102c45] focus:bg-white focus:border-[#007fb8] focus:outline-none cursor-pointer"
+            >
+              {dbBatches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
