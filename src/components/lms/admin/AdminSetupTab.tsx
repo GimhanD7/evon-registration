@@ -44,7 +44,6 @@ import {
   getLmsUsers,
 } from "@/lib/lmsStore";
 import { logActivity } from "@/lib/activityLogService";
-import { getDirectBackendUrl } from "@/lib/apiConfig";
 import {
   executeGoogleDriveBackup,
   getGoogleDriveFolderUrl,
@@ -1117,7 +1116,7 @@ export default function AdminSetupTab({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div className="rounded-2xl border border-[#cddce5] bg-[#edf2f3]/40 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#60768a]">Auto-Lock Console:</span>
@@ -1153,18 +1152,6 @@ export default function AdminSetupTab({
                   : "OFFLINE (Local Fallback)"}
               </span>
             </div>
-          </div>
-
-          <div className="rounded-2xl border border-[#cddce5] bg-[#edf2f3]/40 p-4 space-y-2">
-            <span className="font-bold text-[#60768a] block">Initialize Clean Database:</span>
-            <a
-              href={getDirectBackendUrl("api/seed.php")}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block rounded-xl border border-[#007fb8]/40 bg-white px-3 py-1.5 font-black text-[#007fb8] hover:bg-[#e0f2fe] transition-all"
-            >
-              Reset to Clean DB &rarr;
-            </a>
           </div>
         </div>
       </div>

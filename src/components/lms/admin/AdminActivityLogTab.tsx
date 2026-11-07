@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Activity,
   Search,
-  Trash2,
   Download,
   CheckCircle2,
   AlertTriangle,
@@ -15,10 +14,8 @@ import {
 import {
   getActivityLogs,
   syncActivityLogsFromBackend,
-  clearActivityLogs,
   LMSActivityLog,
 } from "@/lib/activityLogService";
-import DeletePinModal from "@/components/lms/admin/DeletePinModal";
 import LmsPagination from "@/components/lms/shared/LmsPagination";
 
 export default function AdminActivityLogTab() {
@@ -26,7 +23,6 @@ export default function AdminActivityLogTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Pagination State
@@ -110,11 +106,6 @@ export default function AdminActivityLogTab() {
     document.body.removeChild(link);
   };
 
-  const handleConfirmClearLogs = () => {
-    clearActivityLogs();
-    setLogs([]);
-  };
-
   return (
     <div className="space-y-6">
       {/* 1. Header Card */}
@@ -148,15 +139,6 @@ export default function AdminActivityLogTab() {
           >
             <Download size={14} className="text-[#007fb8]" />
             <span>Export CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsClearModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-black text-red-600 shadow-xs hover:bg-red-100 active:scale-95 transition-all cursor-pointer"
-          >
-            <Trash2 size={14} />
-            <span>Clear Logs</span>
           </button>
         </div>
       </div>
@@ -307,16 +289,6 @@ export default function AdminActivityLogTab() {
           itemName="audit log events"
         />
       </div>
-
-      {/* Clear Logs PIN Confirmation Modal */}
-      <DeletePinModal
-        isOpen={isClearModalOpen}
-        title="Clear Activity Audit Logs?"
-        description="This will purge all user surveillance and session audit logs permanently. Authorize with your Administrator Delete PIN."
-        actionButtonText="Purge All Logs"
-        onClose={() => setIsClearModalOpen(false)}
-        onConfirm={handleConfirmClearLogs}
-      />
     </div>
   );
 }

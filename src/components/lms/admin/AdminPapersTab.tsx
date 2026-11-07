@@ -33,7 +33,6 @@ import {
   addLmsPaperResult,
   deleteLmsPaperResult,
   deleteLmsPaper,
-  seedDatabase,
   syncPapersFromBackend,
   getLmsUsers,
   generateAutoStatus,
@@ -124,42 +123,6 @@ export default function AdminPapersTab({
       setDbSyncMsg({
         type: "error",
         text: err instanceof Error ? err.message : "Error connecting to database backend.",
-      });
-    } finally {
-      setIsSyncingDb(false);
-      setTimeout(() => setDbSyncMsg(null), 8000);
-    }
-  };
-
-  const handleClearDatabase = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to completely clear the database and remove all sample papers, results, and student records? Only the administrator account will remain."
-      )
-    ) {
-      return;
-    }
-    setIsSyncingDb(true);
-    setDbSyncMsg(null);
-    try {
-      const res = await seedDatabase();
-      if (res.success) {
-        setDbSyncMsg({
-          type: "success",
-          text: "Database completely cleared! All sample papers, student marks, and mock data have been purged.",
-        });
-        setSelectedPaperId("");
-        onRefresh?.();
-      } else {
-        setDbSyncMsg({
-          type: "error",
-          text: res.message || "Failed to clear database.",
-        });
-      }
-    } catch (err: unknown) {
-      setDbSyncMsg({
-        type: "error",
-        text: err instanceof Error ? err.message : "Error connecting to backend.",
       });
     } finally {
       setIsSyncingDb(false);
@@ -732,17 +695,6 @@ export default function AdminPapersTab({
             >
               <Database size={14} className={isSyncingDb ? "animate-spin text-[#007fb8]" : "text-[#007fb8]"} />
               <span>{isSyncingDb ? "Syncing..." : "Sync DB"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClearDatabase}
-              disabled={isSyncingDb}
-              title="Completely clear all database tables and purge all sample mock data"
-              className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 hover:bg-red-600 hover:text-white px-3.5 py-2.5 text-xs font-black text-red-600 transition-all cursor-pointer shadow-2xs disabled:opacity-60"
-            >
-              <Trash2 size={13} />
-              <span>Clear Sample Data</span>
             </button>
           </div>
         </div>

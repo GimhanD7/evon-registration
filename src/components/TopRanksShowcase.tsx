@@ -88,6 +88,14 @@ export default function TopRanksShowcase() {
   );
   const totalCount = nationalResults.length;
 
+  // Show only 21 student labels on the home page as requested
+  const displayedResults = useMemo(() => {
+    return filteredResults.slice(0, 21);
+  }, [filteredResults]);
+
+  const hasMore = filteredResults.length > 21;
+  const remainingCount = filteredResults.length - 21;
+
   return (
     <section
       className="relative bg-[linear-gradient(180deg,#f8fafc_0%,#edf2f3_100%)] pt-16 pb-20 max-sm:pt-10 max-sm:pb-14"
@@ -198,18 +206,19 @@ export default function TopRanksShowcase() {
           </div>
         </div>
 
-        {/* RESULTS GRID - 3 COLUMNS PILL CARDS (ALL RESULTS ON ONE PAGE) */}
+        {/* RESULTS GRID - 3 COLUMNS PILL CARDS (FIRST 21 STUDENTS) */}
         {filteredResults.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between text-xs font-bold text-[#60768a] px-1">
               <span>
-                Showing all <strong className="text-[#102c45] font-black">{filteredResults.length}</strong> distinction results
+                Showing <strong className="text-[#102c45] font-black">{displayedResults.length}</strong> of{" "}
+                <strong className="text-[#102c45] font-black">{filteredResults.length}</strong> distinction results
               </span>
               <span>All Island Commerce Honors</span>
             </div>
 
             <div className="grid grid-cols-3 gap-3.5 max-xl:grid-cols-2 max-sm:grid-cols-1">
-              {filteredResults.map((st) => (
+              {displayedResults.map((st) => (
                 <div
                   key={st.id}
                   className="flex items-center gap-3.5 rounded-2xl border border-[#d8e2eb] bg-white px-4 py-3.5 shadow-none hover:border-[#007fb8] hover:shadow-xs transition-all"
@@ -242,6 +251,42 @@ export default function TopRanksShowcase() {
                 </div>
               ))}
             </div>
+
+            {/* If there are more students beyond 21, show prominent redirect button */}
+            {hasMore ? (
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-[#007fb8]/30 bg-[linear-gradient(135deg,#f0f9ff_0%,#ffffff_100%)] p-4 sm:p-5 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#007fb8] text-white font-black text-sm shadow-sm">
+                    +{remainingCount}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#102c45]">
+                      +{remainingCount} More Distinction Achievers
+                    </h4>
+                    <p className="text-xs text-[#60768a]">
+                      Showing 21 achievers on the home page. View all student results &amp; marksheets on the official results page.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/results"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#102c45] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#007fb8] hover:scale-105 active:scale-95 transition-all whitespace-nowrap cursor-pointer"
+                >
+                  <span>View All Results Page</span>
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 flex justify-center">
+                <Link
+                  href="/results"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#cddce5] bg-white px-5 py-2 text-xs font-bold text-[#254967] shadow-xs hover:border-[#007fb8] hover:text-[#007fb8] transition-all cursor-pointer"
+                >
+                  <span>Go to All Results Page</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-3xl border border-[#cddce5] bg-white p-12 text-center space-y-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -9,7 +9,7 @@ import {
   ArrowUpRight,
   Sparkles,
 } from "lucide-react";
-import { institutesData } from "@/data/timetableData";
+import { useTimetableData, syncTimetableFromBackend } from "@/lib/timetableStore";
 
 interface TimetableSectionProps {
   onOpenJoin: (courseName?: string) => void;
@@ -19,8 +19,14 @@ export default function TimetableSection({
   onOpenJoin,
 }: TimetableSectionProps) {
   const [selectedInstituteId, setSelectedInstituteId] = useState<string>("all");
+  const institutes = useTimetableData();
 
-  const filteredInstitutes = institutesData.filter((inst) => {
+  useEffect(() => {
+    // Automatically fetch latest timetable configured by admin from database
+    syncTimetableFromBackend().catch(() => {});
+  }, []);
+
+  const filteredInstitutes = institutes.filter((inst) => {
     if (selectedInstituteId !== "all" && inst.id !== selectedInstituteId) {
       return false;
     }
@@ -75,10 +81,10 @@ export default function TimetableSection({
                   : "bg-white text-[#254967] border border-[#cddce5] hover:border-[#007fb8] hover:text-[#007fb8]"
               }`}
             >
-              All Institutes ({institutesData.length})
+              All Institutes ({institutes.length})
             </button>
 
-            {institutesData.map((inst) => {
+            {institutes.map((inst) => {
               const isActive = selectedInstituteId === inst.id;
               return (
                 <button

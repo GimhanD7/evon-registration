@@ -17,6 +17,7 @@ import {
   Unlock,
   KeyRound,
   AlertCircle,
+  Calendar,
 } from "lucide-react";
 import {
   useCurrentLmsUser,
@@ -53,6 +54,7 @@ import AdminActivityLogTab from "@/components/lms/admin/AdminActivityLogTab";
 import AdminNationalResultsTab from "@/components/lms/admin/AdminNationalResultsTab";
 import AdminSetupTab from "@/components/lms/admin/AdminSetupTab";
 import AdminProfileTab from "@/components/lms/admin/AdminProfileTab";
+import AdminTimetableTab from "@/components/lms/admin/AdminTimetableTab";
 import AddStudentModal from "@/components/lms/admin/AddStudentModal";
 import AddPaperModal from "@/components/lms/admin/AddPaperModal";
 
@@ -63,6 +65,7 @@ type AdminTab =
   | "users"
   | "national-results"
   | "evaluations"
+  | "timetable"
   | "activity"
   | "setup"
   | "profile";
@@ -79,6 +82,7 @@ export default function AdminLmsPage() {
         "users",
         "national-results",
         "evaluations",
+        "timetable",
         "activity",
         "setup",
         "profile",
@@ -297,6 +301,7 @@ export default function AdminLmsPage() {
     },
     { id: "national-results", label: "National Results", icon: Award },
     { id: "evaluations", label: "Leaderboard", icon: Trophy },
+    { id: "timetable", label: "Class Timetable", icon: Calendar },
     { id: "activity", label: "Activity Logs", icon: Activity },
     { id: "setup", label: "System Setup", icon: ShieldCheck },
     { id: "profile", label: "My Profile", icon: UserIcon },
@@ -405,6 +410,10 @@ export default function AdminLmsPage() {
                 onAddEvaluation={addLmsEvaluation}
                 onSuccess={refreshData}
               />
+            )}
+
+            {activeTab === "timetable" && (
+              <AdminTimetableTab />
             )}
 
             {activeTab === "activity" && (

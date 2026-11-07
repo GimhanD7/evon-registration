@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -22,7 +22,7 @@ import {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JoinModal from "@/components/JoinModal";
-import { institutesData } from "@/data/timetableData";
+import { useTimetableData, syncTimetableFromBackend } from "@/lib/timetableStore";
 import { printTimetablePdf } from "@/lib/pdfPrintService";
 
 export default function TimetablePage() {
@@ -33,6 +33,12 @@ export default function TimetablePage() {
     undefined
   );
 
+  const institutes = useTimetableData();
+
+  useEffect(() => {
+    syncTimetableFromBackend().catch(() => {});
+  }, []);
+
   const handleOpenJoin = (courseName?: string) => {
     setSelectedCourse(courseName);
     setIsJoinOpen(true);
@@ -42,7 +48,7 @@ export default function TimetablePage() {
     printTimetablePdf();
   };
 
-  const filteredInstitutes = institutesData.filter((inst) => {
+  const filteredInstitutes = institutes.filter((inst) => {
     const matchesInstitute =
       selectedInstituteId === "all" || inst.id === selectedInstituteId;
 
@@ -222,10 +228,10 @@ export default function TimetablePage() {
                         : "border border-[#cddce5] bg-[#edf2f3] text-[#254967] hover:border-[#007fb8] hover:bg-white"
                     }`}
                   >
-                    All Institutes (8)
+                    All Institutes ({institutes.length})
                   </button>
 
-                  {institutesData.map((inst) => {
+                  {institutes.map((inst) => {
                     const isActive = selectedInstituteId === inst.id;
                     return (
                       <button
@@ -265,7 +271,7 @@ export default function TimetablePage() {
                   <span className="rounded-md bg-white px-2.5 py-0.5 font-bold shadow-xs text-[#102c45]">
                     Institute:{" "}
                     {
-                      institutesData.find((i) => i.id === selectedInstituteId)
+                      institutes.find((i) => i.id === selectedInstituteId)
                         ?.name
                     }
                   </span>
